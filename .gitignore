@@ -1,0 +1,15 @@
+# Deployment-specific data stays on the target VM.
+.env
+.env.*
+site.json
+services.json
+credentials.json
+**/state/
+**/logs/
+*.log
+*.jsonl
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+__pycache__/

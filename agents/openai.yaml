@@ -1,0 +1,3 @@
+interface:
+  display_name: "Muse VM 自愈"
+  short_description: "为频繁重置的 Muse VM 部署持久化运行环境、分层修复与任务续跑"
