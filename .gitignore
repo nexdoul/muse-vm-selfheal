@@ -3,7 +3,13 @@
 .env.*
 site.json
 services.json
+approver.json
 credentials.json
+cookies.json*
+token-last.json
+**/data/
+**/log/
+**/backups/
 **/state/
 **/logs/
 *.log
