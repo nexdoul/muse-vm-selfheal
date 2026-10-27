@@ -14,5 +14,6 @@
   "SERVICES_CONFIG": "/home/hatch/selfheal-releases/current/impl/config/services.json",
   "SITE_CONFIG": "/home/hatch/selfheal/config/site.json",
   "VOLUME_PATH": "/home/hatch",
-  "VOLUME_SOURCE_PATTERN": "/dev/mapper/rv*"
+  "VOLUME_SOURCE_PATTERN": "/dev/mapper/rv*",
+  "NODE_BIN": "/usr/bin/node"
 }
