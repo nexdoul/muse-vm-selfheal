@@ -237,3 +237,20 @@ running 前置条件检查 enabled 和停止标记，修复使用 unit，不调�
 
 切换接口与 release 布局见 [migration/README.md](migration/README.md)。
 M3 测试：`python3 impl/tests/test_m3.py`；反证：`python3 impl/tests/test_m3.py --mutations`。
+
+## 重置后的 unit 恢复（M6）
+
+将完整 release（包括 `units/`）放在持久卷，渲染 `config/services.json`，为清单中每个非 external unit 提供模板，然后运行：
+
+```bash
+impl/bin/bootstrap.sh --services impl/config/services.json --dry-run
+impl/bin/bootstrap.sh --services impl/config/services.json
+```
+
+bootstrap 只安装/启用，不启动业务服务。相同内容不重写、不无谓 reload；模板缺失明确失败。
+controller 启动前自举；独立平台入口调用 `bin/boot-ensure.sh`，负责 controller unit 丢失后的首次启动。
+keepalive repair 调持久卷 installer，再按 accounts 执行 start/stop。两个 keepalive unit 的检查在
+LoadState=not-found 时通过内部 FD 3 标记 `missing_unit:` 并退出 1，health 发布 FAILED/missing_unit；
+loaded 但不健康仍为 nonzero。其他旧检查不会新增 systemctl 查询。
+
+完整发布布局、cf-probe 模板要求、`started` 失败不重试的 init 改造方案见 [M6_REPORT.md](M6_REPORT.md)。

@@ -110,7 +110,10 @@ current_user=$(id -un) || fail 'cannot resolve current user'
 protocol=$(jq -r '.status_protocol // 1' <<<"$manifest")
 # Both stages use the same isolated environment, user and process-group deadline.
 run_probe() {
-    local check=$1
+    local check=$1 kind=${2:-probe}
+    check_kind=$kind
+    unit_name=$(jq -r '.unit // .environment.UNIT // ""' <<<"$service")
+    repairable=$(jq -r 'if (.ownership // "managed") == "managed" and (has("repair") and .repair != null) and (.command_probe != true) then "true" else "false" end' <<<"$service")
     user=$(jq -r --arg default "$current_user" '.user // $default' <<<"$service")
     account=$(getent passwd "$user")
     reason=nonzero
@@ -195,9 +198,27 @@ run_probe() {
                 case "$result" in
                     *:ready|ready) reason=ready ;;
                     *missing:exit127) reason=command_missing ;;
+                    # Trusted unit checks report absence on the protocol FD,
+                    # leaving ordinary nonzero checks and command probes intact.
+                    *missing_unit:nonzero) reason=missing_unit ;;
                     *:environment|environment) reason=environment ;;
                     *) reason=nonzero ;;
                 esac
+                # A managed unit that is absent from systemd is a distinct
+                # condition from a unit that exists but fails its check: the
+                # controller must reinstall it (bootstrap) rather than retry a
+                # repair that cannot succeed.  Probe commands run through
+                # command_probe carry a synthetic health_check, so only the
+                # manifest's own check may be reinterpreted here.  Observe-only
+                # rows (external ownership or repair:null) must never touch
+                # systemctl, so they are excluded.  Finally, a check that does
+                # not reference the unit at all (e.g. a file-marker test) says
+                # nothing about unit presence, so it is left alone.
+                if [[ $reason == nonzero && $check_kind == manifest && -n $unit_name && $repairable == true && $check =~ \$(\{)?UNIT(\})?([^A-Za-z0-9_]|$) ]]; then
+                    if [[ $(systemctl show --property=LoadState --value "$unit_name" 2>/dev/null) == not-found ]]; then
+                        reason=missing_unit
+                    fi
+                fi
             fi
         fi
     fi
@@ -215,7 +236,7 @@ while IFS= read -r service; do
         done < <(jq -c '.prerequisites // [] | .[]' <<<"$service")
     fi
     if [[ $reason != waiting ]]; then
-        run_probe "$(jq -r 'if .desired_state == "stopped" then .stopped_check else .health_check end' <<<"$service")"
+        run_probe "$(jq -r 'if .desired_state == "stopped" then .stopped_check else .health_check end' <<<"$service")" manifest
     fi
     case $reason in
         ready)

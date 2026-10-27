@@ -97,7 +97,7 @@ os.execv('/usr/bin/python3', [os.path.basename(sys.argv[0]), *sys.argv[1:]])
             'CF_PROBE_INSTALL_SCRIPT':str(self.installer), 'APPROVER_ROOT':str(self.app),
             'ADAPTER_DIR':str(ROOT/'adapters'), 'NODE_BIN':str(self.node), 'SSH_CONFIG':str(self.ssh),
             'SSH_ALIASES':self.aliases, 'ALIAS_REPAIR_HELPER':str(self.alias_helper),
-            'KEEPALIVE_CONFIG':str(self.accounts), 'KEEPALIVE_UNIT':'synthetic-keep.service',
+            'KEEPALIVE_ROOT':str(self.root/'keepalive'), 'KEEPALIVE_CONFIG':str(self.accounts), 'KEEPALIVE_UNIT':'synthetic-keep.service',
             'KEEPALIVE_LOG':str(self.keep_log), 'TUNNEL_KRVPS_HOST':'synthetic-a.invalid',
             'TUNNEL_USVPS_HOST':'synthetic-b.invalid', 'TUNNEL_KRVPS_PORT':'12345', 'TUNNEL_USVPS_PORT':'23456',
             'SSHD_LISTEN_ADDRESS':'127.0.0.1:22', 'HERMES_PROCESS_PATTERN':'synthetic-worker'
@@ -202,11 +202,11 @@ os.execv('/usr/bin/python3', [os.path.basename(sys.argv[0]), *sys.argv[1:]])
     def test_validate_plan(self):
         self.invoke(mode='reconcile',options=('--validate',),path=TEMPLATE)
         plan=self.invoke(mode='reconcile',options=('--plan',))
-        self.assertEqual([s['id'] for s in plan],['cf-probe','approver','ssh-alias'])
+        self.assertEqual([s['id'] for s in plan],['cf-probe','approver','ssh-alias','xvfb-keepalive','gemini-keepalive'])
         self.assertFalse(self.calls.exists())
         self.assertFalse((self.root/'state').exists())
         self.assertFalse((self.root/'run').exists())
-        self.assertEqual(len(self.rows),10)
+        self.assertEqual(len(self.rows),11)
         self.assertEqual({k for k,s in self.rows.items() if s['ownership']=='external'},
                          {'tunnel-krvps','tunnel-usvps','sshd','hermes'})
 
@@ -222,7 +222,8 @@ os.execv('/usr/bin/python3', [os.path.basename(sys.argv[0]), *sys.argv[1:]])
             self.assertIsNone(self.rows[k]['repair'])
         for k in ('cf-probe','approver','ssh-alias','gemini-keepalive'):
             self.assertEqual(self.rows[k]['ownership'],'managed')
-        self.assertIsNone(self.rows['gemini-keepalive']['repair'])
+        self.assertEqual(self.rows['gemini-keepalive']['repair'],
+                         ['bash "$ADAPTER_DIR/keepalive-repair.sh"'])
 
     def test_cf_check(self):
         self.scan('cf-probe','READY')

@@ -53,8 +53,11 @@ probe() {
 }
 command_probe() {
     local row
+    # Mark the synthetic row so health.sh never reinterprets a command result as
+    # a unit-absence signal: repair commands must run regardless of LoadState.
     row=$(jq -c --arg command "$1" '.desired_state="running" | .prerequisites=[] |
-        .health_check=$command | .health_timeout_sec=(.timeout_sec // 30)' <<<"$service") || return 2
+        .health_check=$command | .health_timeout_sec=(.timeout_sec // 30) |
+        .command_probe=true' <<<"$service") || return 2
     probe "$row"
 }
 overall=0

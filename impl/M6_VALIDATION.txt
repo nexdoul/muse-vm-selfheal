@@ -1,0 +1,169 @@
+$ python3 ../fixture_m1.py impl/bin/health.sh
+health execution contract: PASS
+[exit 0]
+
+$ python3 impl/tests/test_m2.py
+protocol: WAITING, failure precedence (both orders), STOPPED, metadata, atomic output PASS
+manifest probes: exact listener, approver single call/live PID/freshness/stopped, keepalive freshness/design-stopped, HTTP and unit conjunction PASS
+tunnels: real pgrep matches SSH-shaped argv, rejects wrong port/host and absent process PASS
+M2 regression: PASS
+[exit 0]
+
+$ python3 impl/tests/test_m2c.py
+test_conflict (__main__.Tests.test_conflict) ... ok
+test_infrastructure (__main__.Tests.test_infrastructure) ... ok
+test_install_patch (__main__.Tests.test_install_patch) ... ok
+test_keepalive (__main__.Tests.test_keepalive) ... ok
+test_reference (__main__.Tests.test_reference) ... ok
+test_reference_errors (__main__.Tests.test_reference_errors) ... ok
+test_tunnels_waiting (__main__.Tests.test_tunnels_waiting) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 6.358s
+
+OK
+[exit 0]
+
+$ python3 impl/tests/test_m3.py
+test_automatic_rollback (__main__.MigrationTests.test_automatic_rollback) ... ok
+test_dry_run (__main__.MigrationTests.test_dry_run) ... ok
+test_preflight_failure_restores_old (__main__.MigrationTests.test_preflight_failure_restores_old) ... ok
+test_switch_and_rollback (__main__.MigrationTests.test_switch_and_rollback) ... ok
+test_external (__main__.Tests.test_external) ... ok
+test_plan (__main__.Tests.test_plan) ... ok
+test_precedence (__main__.Tests.test_precedence) ... ok
+test_prepare_custom_repair_and_recheck (__main__.Tests.test_prepare_custom_repair_and_recheck) ... ok
+test_reference_stop_and_lock (__main__.Tests.test_reference_stop_and_lock) ... ok
+test_repair_null (__main__.Tests.test_repair_null) ... ok
+test_reset_and_terminal (__main__.Tests.test_reset_and_terminal) ... ok
+test_static_and_template (__main__.Tests.test_static_and_template) ... ok
+test_terminal_guard_independent_of_health (__main__.Tests.test_terminal_guard_independent_of_health) ... ok
+test_validate (__main__.Tests.test_validate) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 17.134s
+
+OK
+[exit 0]
+
+$ python3 impl/tests/test_m4.py
+test_alias_check (__main__.Tests.test_alias_check) ... ok
+test_alias_repair (__main__.Tests.test_alias_repair) ... ok
+test_approver_check (__main__.Tests.test_approver_check) ... ok
+test_approver_identity (__main__.Tests.test_approver_identity) ... ok
+test_approver_log_timestamp (__main__.Tests.test_approver_log_timestamp) ... ok
+test_approver_precheck (__main__.Tests.test_approver_precheck) ... ok
+test_approver_stale_repair (__main__.Tests.test_approver_stale_repair) ... ok
+test_approver_stop (__main__.Tests.test_approver_stop) ... ok
+test_cf_check (__main__.Tests.test_cf_check) ... ok
+test_cf_missing_unit (__main__.Tests.test_cf_missing_unit) ... ok
+test_cf_repair_environment_and_recheck (__main__.Tests.test_cf_repair_environment_and_recheck) ... ok
+test_complete_manifest (__main__.Tests.test_complete_manifest) ... ok
+test_external (__main__.Tests.test_external) ... ok
+test_identity_check_argument (__main__.Tests.test_identity_check_argument) ... ok
+test_identity_cwd (__main__.Tests.test_identity_cwd) ... ok
+test_identity_node_basename (__main__.Tests.test_identity_node_basename) ... ok
+test_identity_script_path (__main__.Tests.test_identity_script_path) ... ok
+test_identity_starttime_reuse (__main__.Tests.test_identity_starttime_reuse) ... ok
+test_identity_uid (__main__.Tests.test_identity_uid) ... ok
+test_identity_zombie (__main__.Tests.test_identity_zombie) ... ok
+test_keepalive (__main__.Tests.test_keepalive) ... ok
+test_marker_validation (__main__.Tests.test_marker_validation) ... ok
+test_validate_plan (__main__.Tests.test_validate_plan) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 18.777s
+
+OK
+[exit 0]
+
+$ python3 impl/tests/test_m5.py
+test_relative_identity_without_cwd (__main__.Tests.test_relative_identity_without_cwd) ... ok
+test_relative_pidfile_binding (__main__.Tests.test_relative_pidfile_binding) ... approver: environment: /home/ribon/.hermes/cache/scratch/m4-g4keuywd/app with spaces/data/muse-daemon.pid: PID/starttime evidence does not match pid 1968601
+approver: environment: /home/ribon/.hermes/cache/scratch/m4-g4keuywd/app with spaces/data/muse-daemon.pid: missing/invalid relative-script identity
+approver: environment: /home/ribon/.hermes/cache/scratch/m4-g4keuywd/app with spaces/data/muse-daemon.pid: missing/invalid relative-script identity
+approver: environment: /home/ribon/.hermes/cache/scratch/m4-g4keuywd/app with spaces/data/muse-daemon.pid: missing/invalid relative-script identity
+ok
+test_relative_starttime_evidence (__main__.Tests.test_relative_starttime_evidence) ... approver: environment: /home/ribon/.hermes/cache/scratch/m4-83khze12/app with spaces/data/muse-daemon.pid: PID/starttime evidence does not match pid 1968918
+approver: environment: /home/ribon/.hermes/cache/scratch/m4-83khze12/app with spaces/data/muse-daemon.pid: PID/starttime evidence does not match pid 1968918
+ok
+test_relative_script_exact (__main__.Tests.test_relative_script_exact) ... ok
+test_permission_errors_are_environment (__main__.Tests.test_permission_errors_are_environment) ... approver: environment: [Errno 13] sandbox denial: '/proc/1969746'
+approver: environment: [Errno 13] sandbox denial: '/proc/1969746'
+approver: environment: [Errno 13] sandbox denial: '/proc/1969746/cmdline'
+approver: environment: [Errno 13] sandbox denial: '/proc/1969746/cmdline'
+approver: environment: [Errno 13] sandbox denial: '/proc/1969746/stat'
+approver: environment: [Errno 13] sandbox denial: '/proc/1969746/stat'
+ok
+test_preflight_required_fields (__main__.Tests.test_preflight_required_fields) ... approver: environment: [Errno 13] preflight denial: '/proc/1968205/cmdline'
+approver: environment: [Errno 13] preflight denial: '/proc/1968205/stat'
+ok
+test_pidfile_log_and_signal_permissions (__main__.Tests.test_pidfile_log_and_signal_permissions) ... approver: environment: [Errno 13] sandbox denial: '/home/ribon/.hermes/cache/scratch/m4-qlxjckic/app with spaces/data/muse-daemon.pid'
+approver: environment: [Errno 13] sandbox denial: '/home/ribon/.hermes/cache/scratch/m4-qlxjckic/app with spaces/log/daemon-log.ndjson'
+approver: environment: [Errno 13] sandbox denial: '/proc/stat'
+approver: environment: [Errno 1] signal denied
+approver: environment: [Errno 1] signal denied
+ok
+test_entrypoint_environment_mapping (__main__.Tests.test_entrypoint_environment_mapping) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.435s
+
+OK
+[exit 0]
+
+$ python3 impl/tests/test_m6.py
+test_allowlist_external_and_legacy (__main__.BootstrapTests.test_allowlist_external_and_legacy) ... ok
+test_boot_entry_needs_no_controller_unit (__main__.BootstrapTests.test_boot_entry_needs_no_controller_unit) ... ok
+test_changed_template_and_reset (__main__.BootstrapTests.test_changed_template_and_reset) ... ok
+test_controller_startup_order (__main__.BootstrapTests.test_controller_startup_order) ... ok
+test_dry_run (__main__.BootstrapTests.test_dry_run) ... ok
+test_idempotence (__main__.BootstrapTests.test_idempotence) ... ok
+test_invalid_registration (__main__.BootstrapTests.test_invalid_registration) ... ok
+test_missing_template (__main__.BootstrapTests.test_missing_template) ... ok
+test_reload_retry_and_enable_failure (__main__.BootstrapTests.test_reload_retry_and_enable_failure) ... ok
+test_missing_unit_reason (__main__.RecoveryTests.test_missing_unit_reason) ... ok
+test_keepalive_installs_and_converges (__main__.RecoveryTests.test_keepalive_installs_and_converges) ... ok
+test_external_and_null_still_observe_only (__main__.RecoveryTests.test_external_and_null_still_observe_only) ... ok
+test_missing_unit_protocol_preserves_other_failures (__main__.RecoveryTests.test_missing_unit_protocol_preserves_other_failures) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 6.583s
+
+OK
+[exit 0]
+
+$ python3 impl/tests/test_m6.py --mutations
+MUTATION: always rewrite identical unit
+test_idempotence (__main__.BootstrapTests.test_idempotence) ... FAIL
+
+======================================================================
+FAIL: test_idempotence (__main__.BootstrapTests.test_idempotence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m6.py", line 69, in test_idempotence
+    self.assertEqual(before, [(p.stat().st_ino,p.stat().st_mtime_ns) for p in paths])
+AssertionError: Lists differ: [(1189659, 1000000000), (1189660, 1000000000)] != [(1189680, 1793104153721162419), (1189659, 1793104153721422940)]
+
+First differing element 0:
+(1189659, 1000000000)
+(1189680, 1793104153721162419)
+
+- [(1189659, 1000000000), (1189660, 1000000000)]
++ [(1189680, 1793104153721162419), (1189659, 1793104153721422940)]
+
+----------------------------------------------------------------------
+Ran 1 test in 0.177s
+
+FAILED (failures=1)
+
+DETECTED; M6 mutation checks: PASS (temporary copy only)
+[exit 0]
+
+$ SYSTEMD_UNIT_PATH="$PWD/impl/units:/usr/lib/systemd/system" systemd-analyze verify impl/units/*.service
+[exit 0]
+
+$ bash -n impl/bin/bootstrap.sh impl/bin/boot-ensure.sh impl/bin/controller-loop.sh impl/bin/health.sh impl/adapters/keepalive-repair.sh
+[exit 0]
+
+Python syntax and M6 documentation Bash/JSON examples: PASS

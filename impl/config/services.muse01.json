@@ -99,14 +99,35 @@
       "settle_sec": 3
     },
     {
+      "id": "xvfb-keepalive",
+      "kind": "display",
+      "ownership": "managed",
+      "unit": "muse-xvfb-keepalive.service",
+      "environment": {
+        "UNIT": "muse-xvfb-keepalive.service"
+      },
+      "health_check": "systemctl is-active --quiet \"$UNIT\" || exit 1",
+      "repair": [
+        "systemctl start \"$UNIT\""
+      ],
+      "health_timeout_sec": 5,
+      "timeout_sec": 30,
+      "settle_sec": 3
+    },
+    {
       "id": "gemini-keepalive",
       "kind": "local-http",
       "ownership": "managed",
-      "repair": null,
+      "repair": [
+        "bash \"$ADAPTER_DIR/keepalive-repair.sh\""
+      ],
       "environment": {
         "UNIT": "<KEEPALIVE_UNIT>",
         "LOG": "<KEEPALIVE_LOG>",
-        "MAX_LOG_AGE_SEC": "120"
+        "MAX_LOG_AGE_SEC": "120",
+        "KEEPALIVE_ROOT": "<KEEPALIVE_ROOT>",
+        "ADAPTER_DIR": "<ADAPTER_DIR>",
+        "KEEPALIVE_CONFIG": "<KEEPALIVE_CONFIG>"
       },
       "desired_state_ref": {
         "file": "<KEEPALIVE_CONFIG>",
@@ -115,7 +136,7 @@
         "when_nonempty": "running"
       },
       "health_check": "systemctl is-active --quiet \"$UNIT\" || exit 1\n[[ \"$MAX_LOG_AGE_SEC\" =~ ^[0-9]+$ ]] || exit 1\n[ -f \"$LOG\" ] || exit 1\nlast_epoch=$(stat -c %Y \"$LOG\") || exit 1\nnow_epoch=$(date +%s) || exit 1\nage=$((now_epoch - last_epoch))\n[ \"$age\" -ge 0 ] && [ \"$age\" -le \"$MAX_LOG_AGE_SEC\" ]",
-      "stopped_check": "load=$(systemctl show --property=LoadState --value \"$UNIT\") || exit 1\n[ \"$load\" = loaded ] || exit 1\nstate=$(systemctl show --property=ActiveState --value \"$UNIT\") || exit 1\n[ \"$state\" = inactive ] || exit 1\nresult=$(systemctl show --property=Result --value \"$UNIT\") || exit 1\n[ \"$result\" = success ] || exit 1\ncode=$(systemctl show --property=ExecMainStatus --value \"$UNIT\") || exit 1\n[ \"$code\" = 0 ]",
+      "stopped_check": "load=$(systemctl show --property=LoadState --value \"$UNIT\") || exit 1\n[ \"$load\" = loaded ] || { printf \"missing_unit:\" >&3; exit 1; }\nstate=$(systemctl show --property=ActiveState --value \"$UNIT\") || exit 1\n[ \"$state\" = inactive ] || exit 1\nresult=$(systemctl show --property=Result --value \"$UNIT\") || exit 1\n[ \"$result\" = success ] || exit 1\ncode=$(systemctl show --property=ExecMainStatus --value \"$UNIT\") || exit 1\n[ \"$code\" = 0 ]",
       "home": "<SERVICE_HOME>",
       "workdir": "/",
       "health_timeout_sec": 5

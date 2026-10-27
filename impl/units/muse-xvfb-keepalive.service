@@ -1,0 +1,17 @@
+[Unit]
+Description=Virtual X display for Gemini keepalive browser (:99)
+After=default.target
+Before=muse-selfheal-gemini-keepalive.service
+PartOf=muse-selfheal-gemini-keepalive.service
+
+[Service]
+Type=simple
+# Xvfb 直接作为主进程，systemd 能正确追踪；不要用 & 后台化
+ExecStart=/usr/bin/Xvfb :99 -screen 0 1280x900x24 +extension GLX +render -noreset
+Restart=always
+RestartSec=5
+# Xvfb 本身极轻，限制上限避免异常时吃满
+MemoryMax=256M
+
+[Install]
+WantedBy=default.target
