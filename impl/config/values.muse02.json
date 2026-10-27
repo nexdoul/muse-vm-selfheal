@@ -1,0 +1,18 @@
+{
+  "SERVICE_HOME": "/home/hatch",
+  "ADAPTER_DIR": "/home/hatch/selfheal-releases/current/impl/adapters",
+  "RELEASES": "/home/hatch/selfheal-releases",
+  "SELFHEAL": "/home/hatch/selfheal",
+  "APPROVER_CONFIG": "/home/hatch/selfheal/config/approver.json",
+  "APPROVERCTL": "/home/hatch/selfheal/bin/approverctl",
+  "KEEPALIVE_CONFIG": "/home/hatch/muse-keepalive/config.json",
+  "KEEPALIVE_LOG": "/home/hatch/muse-keepalive/logs/keepalive.log",
+  "KEEPALIVE_ROOT": "/home/hatch/muse-keepalive",
+  "KEEPALIVE_UNIT": "muse-selfheal-gemini-keepalive.service",
+  "RELAY_HOST": "134.185.104.79",
+  "REVERSE_PORT": "2223",
+  "SERVICES_CONFIG": "/home/hatch/selfheal-releases/current/impl/config/services.json",
+  "SITE_CONFIG": "/home/hatch/selfheal/config/site.json",
+  "VOLUME_PATH": "/home/hatch",
+  "VOLUME_SOURCE_PATTERN": "/dev/mapper/rv*"
+}

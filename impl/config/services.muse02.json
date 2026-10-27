@@ -87,7 +87,9 @@
         "REVERSE_PORT": "<REVERSE_PORT>",
         "RELAY_HOST": "<RELAY_HOST>"
       },
-      "health_check": "host=$(printf \"%s\" \"$RELAY_HOST\" | sed 's/[][\\\\.^$*+?(){}|]/\\\\&/g') || exit 1\npgrep -f \"(^|/)[s]sh[[:space:]].*[[:space:]]-R[[:space:]]+[^[:space:]]*:${REVERSE_PORT}:[^[:space:]]*[[:space:]].*(@|[[:space:]])${host}([[:space:]]|$)\" >/dev/null"
+      "health_check": "host=$(printf \"%s\" \"$RELAY_HOST\" | sed 's/[][\\\\.^$*+?(){}|]/\\\\&/g') || exit 1\npgrep -f \"(^|/)[s]sh[[:space:]].*[[:space:]]-R[[:space:]]+[^[:space:]]*:${REVERSE_PORT}:[^[:space:]]*[[:space:]].*(@|[[:space:]])${host}([[:space:]]|$)\" >/dev/null",
+      "ownership": "external",
+      "repair": null
     },
     {
       "desired_state": "running",
@@ -107,7 +109,9 @@
         "REVERSE_PORT": "<REVERSE_PORT>",
         "RELAY_HOST": "<RELAY_HOST>"
       },
-      "health_check": "host=$(printf \"%s\" \"$RELAY_HOST\" | sed 's/[][\\\\.^$*+?(){}|]/\\\\&/g') || exit 1\npgrep -f \"(^|/)[s]sh[[:space:]].*[[:space:]]-R[[:space:]]+[^[:space:]]*:${REVERSE_PORT}:[^[:space:]]*[[:space:]].*(@|[[:space:]])${host}([[:space:]]|$)\" >/dev/null"
+      "health_check": "host=$(printf \"%s\" \"$RELAY_HOST\" | sed 's/[][\\\\.^$*+?(){}|]/\\\\&/g') || exit 1\npgrep -f \"(^|/)[s]sh[[:space:]].*[[:space:]]-R[[:space:]]+[^[:space:]]*:${REVERSE_PORT}:[^[:space:]]*[[:space:]].*(@|[[:space:]])${host}([[:space:]]|$)\" >/dev/null",
+      "ownership": "external",
+      "repair": null
     },
     {
       "desired_state": "running",
@@ -123,9 +127,15 @@
       "user": "root",
       "environment": {
         "APPROVER_CONFIG": "<APPROVER_CONFIG>",
-        "APPROVERCTL": "<APPROVERCTL>"
+        "APPROVERCTL": "<APPROVERCTL>",
+        "UNIT": "muse-selfheal-approver.service"
       },
-      "health_check": "jq -e '.version == 1' \"$APPROVER_CONFIG\" >/dev/null || exit 1\ndesired=$(jq -r '.desired_state // \"stopped\"' \"$APPROVER_CONFIG\") || exit 1\nenabled=$(jq -r '.enabled // false' \"$APPROVER_CONFIG\") || exit 1\nif [ \"$desired\" = stopped ] || [ \"$enabled\" != true ]; then exit 0; fi\nst=$(\"$APPROVERCTL\" status) || exit 1\npid=$(printf '%s' \"$st\" | jq -er '.worker_pid | select(type == \"number\" and . > 0 and . == floor)') || exit 1\nlast=$(printf '%s' \"$st\" | jq -er '.evidence.last_list_success_at | select(type == \"string\" and length > 0)') || exit 1\nkill -0 \"$pid\" 2>/dev/null || exit 1\nlast_epoch=$(date -d \"$last\" +%s 2>/dev/null) || exit 1\nnow_epoch=$(date -u +%s) || exit 1\nage=$((now_epoch - last_epoch))\n[ \"$age\" -ge 0 ] && [ \"$age\" -le 120 ]"
+      "health_check": "jq -e '.version == 1' \"$APPROVER_CONFIG\" >/dev/null || exit 1\ndesired=$(jq -r '.desired_state // \"stopped\"' \"$APPROVER_CONFIG\") || exit 1\nenabled=$(jq -r '.enabled // false' \"$APPROVER_CONFIG\") || exit 1\nif [ \"$desired\" = stopped ] || [ \"$enabled\" != true ]; then exit 0; fi\nst=$(\"$APPROVERCTL\" status) || exit 1\npid=$(printf '%s' \"$st\" | jq -er '.worker_pid | select(type == \"number\" and . > 0 and . == floor)') || exit 1\nlast=$(printf '%s' \"$st\" | jq -er '.evidence.last_list_success_at | select(type == \"string\" and length > 0)') || exit 1\nkill -0 \"$pid\" 2>/dev/null || exit 1\nlast_epoch=$(date -d \"$last\" +%s 2>/dev/null) || exit 1\nnow_epoch=$(date -u +%s) || exit 1\nage=$((now_epoch - last_epoch))\n[ \"$age\" -ge 0 ] && [ \"$age\" -le 120 ]",
+      "repair": [
+        "/home/hatch/selfheal/bin/approverctl start",
+        "/home/hatch/selfheal/bin/approverctl status >/dev/null"
+      ],
+      "unit": "muse-selfheal-approver.service"
     },
     {
       "id": "douyin-parse",

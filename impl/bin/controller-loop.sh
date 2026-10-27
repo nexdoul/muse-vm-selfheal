@@ -8,11 +8,36 @@ INTERVAL="${INTERVAL:-30}"
 R=$(readlink -f "$RELEASES/current") || exit 2
 B="$R/impl"
 mkdir -p "$SELFHEAL/state" "$SELFHEAL/run" "$SELFHEAL/logs"
-services="${SERVICES:-$B/config/services.${SITE:-$(hostname -s)}.json}"
+
+# Site identity cannot come from the hostname: both Muse VMs report
+# "htch-runtime", so a hostname-derived manifest name never exists.  Resolve in
+# priority order and fail loudly instead of looping on a missing file.
+site="${SITE:-}"
+if [[ -z $site && -r $SELFHEAL/config/site.json ]]; then
+    site=$(jq -r '.site // ""' "$SELFHEAL/config/site.json" 2>/dev/null)
+fi
+services="${SERVICES:-}"
+if [[ -z $services ]]; then
+    # A rendered manifest is authoritative: deploy writes it for this host and
+    # it is already placeholder-free.  Site-named templates are render inputs,
+    # not runnable manifests.
+    if [[ -r $B/config/services.json ]]; then
+        services="$B/config/services.json"
+    elif [[ -n $site && -r $B/config/services.$site.json ]]; then
+        services="$B/config/services.$site.json"
+    else
+        # No manifest is resolvable from names, but bootstrap owns the decision
+        # and reports a precise error; failing here would hide which path was
+        # tried.  Use the conventional name and let it fail loudly.
+        services="$B/config/services.json"
+    fi
+fi
+
 # Templates are per site (keepalive/sshd units differ between hosts); fall back
 # to the shared directory when this site has no dedicated one.
-unit_dir="$B/units-${SITE:-$(hostname -s)}"
-[[ -d $unit_dir ]] || unit_dir="$B/units"
+unit_dir="$B/units-$site"
+[[ -n $site && -d $unit_dir ]] || unit_dir="$B/units"
+
 # A failed bootstrap must not enter reconciliation with partially restored units.
 # The controller unit restarts us; direct callers receive the failure explicitly.
 "$B/bin/bootstrap.sh" --services "$services" --unit-dir "$unit_dir" \
