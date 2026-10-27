@@ -15,7 +15,8 @@ impl/bin/health.sh --services impl/config/services.example.json \
 缺少所需检查不是健康成功，而是清单错误。`health_timeout_sec` 默认 5 秒，必须大于 0，
 每次探测覆盖环境加载、工作目录切换和检查执行（每条 prerequisite 单独计时）。超时先向进程组发 TERM，1 秒后发 KILL；
 检查不得通过新建会话逃离进程组。普通非零退出（含显式 `exit 124`、`exit 127`）为
-`nonzero`，Bash 找不到命令且最终退出 127 为 `command_missing`，超时为 `timeout`。
+`nonzero`；探测命令退出 2 专用于环境错误，映射为 FAILED/environment，整体 health 仍退出 20。
+Bash 找不到命令且最终退出 127 为 `command_missing`，超时为 `timeout`。
 各项顺序执行，不会因前一项失败而跳过后续服务。锁位于 run-dir，竞争时等待。
 
 ## 服务环境

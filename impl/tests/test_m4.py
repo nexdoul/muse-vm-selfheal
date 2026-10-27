@@ -80,11 +80,12 @@ printf 'aliases:%s\\n' "$ALIASES" >> "$CALLS"
 : > "$SSH_CONFIG"
 for alias in $ALIASES; do printf 'Host %s\\n' "$alias" >> "$SSH_CONFIG"; done
 ''')
-        self.node = self.mock('node', '''#!/usr/bin/python3
+        # A unique NODE_BIN basename isolates fixtures from live local daemons.
+        self.node = self.mock('node-'+self.root.name, '''#!/usr/bin/python3
 import os, sys
 with open(os.environ['CALLS'],'a') as f: f.write('node '+ ' '.join(sys.argv[1:])+'\\n')
 if '--check' in sys.argv: sys.exit(int(os.environ.get('PRECHECK_RC','0')))
-os.execv('/usr/bin/python3', ['node', *sys.argv[1:]])
+os.execv('/usr/bin/python3', [os.path.basename(sys.argv[0]), *sys.argv[1:]])
 ''')
         self.mock('ssh', '#!/bin/bash\necho forbidden-ssh >> "$CALLS"\nexit 99\n')
         self.env = dict(PATH=str(self.bin)+':/usr/bin:/bin', DB=str(self.db), CALLS=str(self.calls))
@@ -160,12 +161,12 @@ os.execv('/usr/bin/python3', ['node', *sys.argv[1:]])
              patch.object(sys, 'argv', ['approver.py', mode]):
             return self.approver.main()
 
-    def identity_process(self, argv0='node', cwd=None, script=None, args=()):
+    def identity_process(self, argv0=None, cwd=None, script=None, args=()):
         # A real /proc entry; argv[0] deliberately matches the configured node
         # basename. No dependency on a system Node installation is needed.
         script = script or self.script
         script.write_text('import time; time.sleep(120)')
-        p = subprocess.Popen([argv0, str(script), *args], executable='/usr/bin/python3',
+        p = subprocess.Popen([argv0 or self.node.name, str(script), *args], executable='/usr/bin/python3',
                              cwd=cwd or self.app)
         self.children.append(p)
         self.write_log()
@@ -183,7 +184,7 @@ os.execv('/usr/bin/python3', ['node', *sys.argv[1:]])
         if other:
             alt=self.root/'different-app'; alt.mkdir(); script=alt/'muse-daemon.cjs'
             script.write_text('import time; time.sleep(120)')
-        p=subprocess.Popen(['node',str(script)],executable='/usr/bin/python3',cwd=self.app)
+        p=subprocess.Popen([self.node.name,str(script)],executable='/usr/bin/python3',cwd=self.app)
         self.children.append(p)
         if not other:
             deadline=time.monotonic()+3
@@ -361,7 +362,12 @@ os.execv('/usr/bin/python3', ['node', *sys.argv[1:]])
 
     def test_identity_cwd(self):
         other = self.root/'other'; other.mkdir()
-        self.assert_rejected(self.identity_process(cwd=other))
+        p = self.identity_process(cwd=other)
+        # M5: absolute script location is authoritative, independent of cwd.
+        self.assertIsNotNone(self.approver.identity(p.pid, self.app, self.node))
+        self.assertEqual(self.main(), 0)
+        self.adapter('approver-check')
+        self.scan('approver', 'READY')
 
     def test_identity_script_path(self):
         self.assert_rejected(self.identity_process(script=self.app/'other.cjs'))
@@ -478,8 +484,9 @@ def mutations(test_names=()):
          'if proc.stat().st_uid != os.getuid():','if False:'),
         ('identity node basename bypassed','test_identity_node_basename','adapters/approver.py',
          "os.fsdecode(args[0]).split('/')[-1] != Path(node).name",'False'),
-        ('identity cwd bypassed','test_identity_cwd','adapters/approver.py',
-         'if cwd != root:','if False:'),
+        ('identity cwd dependency restored','test_identity_cwd','adapters/approver.py',
+         'script = Path(os.fsdecode(args[1]))',
+         "if proc.joinpath('cwd').resolve(strict=True) != root: return None\n        script = Path(os.fsdecode(args[1]))"),
         ('identity script path bypassed','test_identity_script_path','adapters/approver.py',
          "script.resolve() != root / 'muse-daemon.cjs'",'False'),
         ('identity --check accepted','test_identity_check_argument','adapters/approver.py',

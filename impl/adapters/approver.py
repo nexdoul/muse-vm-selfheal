@@ -10,6 +10,42 @@ import sys
 import time
 
 
+class IdentityUnavailable(RuntimeError):
+    """A candidate exists, but its identity cannot be established safely."""
+
+
+def proc_preflight():
+    # Self is guaranteed to exist. This is a capability hint, not evidence
+    # that a different process has the same ptrace/dumpable permissions.
+    proc = Path('/proc') / str(os.getpid())
+    proc.joinpath('cmdline').read_bytes()
+    proc.joinpath('stat').read_text()
+    try:
+        proc.joinpath('cwd').readlink()
+    except PermissionError:
+        print('approver: /proc cwd unavailable; using cmdline/stat identity', file=sys.stderr)
+
+
+def relative_identity(pid, root, starttime):
+    # Relative argv cannot identify a directory. Bind it to the daemon-owned
+    # pidfile under this root, and reject evidence older than this PID lifetime.
+    pidfile = root / 'data/muse-daemon.pid'
+    try:
+        with pidfile.open() as f:
+            recorded = int(f.read().strip())
+            modified = os.fstat(f.fileno()).st_mtime
+    except (FileNotFoundError, ValueError) as exc:
+        raise IdentityUnavailable(f'{pidfile}: missing/invalid relative-script identity') from exc
+    try:
+        boot = next(int(line.split()[1]) for line in Path('/proc/stat').read_text().splitlines()
+                    if line.startswith('btime '))
+    except (ValueError, StopIteration) as exc:
+        raise IdentityUnavailable('missing/invalid /proc/stat btime') from exc
+    started = boot + int(starttime) / os.sysconf('SC_CLK_TCK')
+    if recorded != pid or not started <= modified <= time.time():
+        raise IdentityUnavailable(f'{pidfile}: PID/starttime evidence does not match pid {pid}')
+
+
 def identity(pid, root, node):
     try:
         proc = Path('/proc') / str(pid)
@@ -18,21 +54,29 @@ def identity(pid, root, node):
         args = proc.joinpath('cmdline').read_bytes().split(b'\0')
         if len(args) < 3 or os.fsdecode(args[0]).split('/')[-1] != Path(node).name:
             return None
-        cwd = proc.joinpath('cwd').resolve(strict=True)
-        if cwd != root:
-            return None
         script = Path(os.fsdecode(args[1]))
-        if not script.is_absolute():
-            script = cwd / script
-        if script.resolve() != root / 'muse-daemon.cjs' or b'--check' in args:
+        if b'--check' in args:
+            return None
+        if script.is_absolute():
+            if script.resolve() != root / 'muse-daemon.cjs':
+                return None
+        elif script != Path('muse-daemon.cjs'):
             return None
         # starttime distinguishes reuse of the same numeric PID.
         fields = proc.joinpath('stat').read_text().rsplit(')', 1)[1].split()
         if fields[0] == 'Z':
             return None
-        return fields[19]
-    except (OSError, ValueError, IndexError):
+        if not fields[19].isdecimal():
+            raise IdentityUnavailable(f'pid {pid}: invalid starttime')
+    except PermissionError:
+        raise
+    except (FileNotFoundError, ProcessLookupError):
         return None
+    except (ValueError, IndexError) as exc:
+        raise IdentityUnavailable(f'pid {pid}: invalid identity data') from exc
+    if not script.is_absolute():
+        relative_identity(pid, root, fields[19])
+    return fields[19]
 
 
 def processes(root, node):
@@ -52,11 +96,22 @@ def fresh(log, maximum):
             return False
         age = time.time() - stamp / 1000
         return math.isfinite(age) and 0 <= age <= maximum
+    except PermissionError:
+        raise
     except (OSError, ValueError, KeyError, TypeError, StopIteration):
         return False
 
 
 def main():
+    try:
+        return run()
+    except (OSError, IdentityUnavailable) as exc:
+        print(f"approver: environment: {exc}", file=sys.stderr)
+        return 2
+
+
+def run():
+    proc_preflight()
     mode = sys.argv[1]
     root = Path(os.environ['APPROVER_ROOT']).resolve(strict=True)
     maximum = int(os.environ.get('MAX_STALE_SEC', '900'))
@@ -86,13 +141,13 @@ def main():
                     os.close(fd)
         # TERM is not proof of exit. Only a later cycle may start a replacement.
         return 0
-    subprocess.run([node, 'muse-daemon.cjs', '--check'], cwd=root, check=True,
+    subprocess.run([node, str(root / 'muse-daemon.cjs'), '--check'], cwd=root, check=True,
                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if stop.exists() or processes(root, node):
         return 0
     (root / 'log').mkdir(exist_ok=True)
     with (root / 'log/muse-console.log').open('ab') as console:
-        subprocess.Popen(['nohup', node, 'muse-daemon.cjs', '--loop', '10000', '--always', '--fallback-once'],
+        subprocess.Popen(['nohup', node, str(root / 'muse-daemon.cjs'), '--loop', '10000', '--always', '--fallback-once'],
                          cwd=root, stdin=subprocess.DEVNULL, stdout=console, stderr=console,
                          close_fds=True)
     return 0  # reconcile must recheck process identity AND the daemon's own log.

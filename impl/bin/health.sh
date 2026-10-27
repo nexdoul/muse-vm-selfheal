@@ -165,6 +165,7 @@ run_probe() {
                         rc=$?
                         case $rc in
                             0) printf "ready" ;;
+                            2) printf "environment" ;;
                             127) printf "exit127" ;;
                             *) printf "nonzero" ;;
                         esac
@@ -194,6 +195,7 @@ run_probe() {
                 case "$result" in
                     *:ready|ready) reason=ready ;;
                     *missing:exit127) reason=command_missing ;;
+                    *:environment|environment) reason=environment ;;
                     *) reason=nonzero ;;
                 esac
             fi
