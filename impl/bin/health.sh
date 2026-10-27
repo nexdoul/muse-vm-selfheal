@@ -25,9 +25,11 @@ for tool in jq setsid env flock mktemp mkfifo id getent; do
 done
 manifest=$(jq -c . "$services" 2>/dev/null) || fail 'cannot read services manifest'
 jq -e '
-    .version == 1 and (.services | type == "array") and
+    .version == 1 and ((.status_protocol // 1) | . == 1 or . == 2) and
+    (.services | type == "array") and
     all(.services[];
         (.id | type == "string" and length > 0) and
+        ((.prerequisites // []) | type == "array" and all(.[]; type == "string" and length > 0)) and
         ((.desired_state // "running") | . == "running" or . == "stopped") and
         ((if .desired_state == "stopped" then .stopped_check else .health_check end) | type == "string" and length > 0) and
         ((.health_timeout_sec // 5) | type == "number" and . > 0) and
@@ -43,9 +45,10 @@ status_tmp=$(mktemp "$state_dir/.status.XXXXXX") || { rm -f -- "$rows"; fail 'ca
 probe_dir=$(mktemp -d "$run_dir/.probe.XXXXXX") || fail 'cannot create probe directory'
 trap 'rm -f -- "$rows" "$status_tmp"; rm -rf -- "$probe_dir"' EXIT
 current_user=$(id -un) || fail 'cannot resolve current user'
-overall=0
-while IFS= read -r service; do
-    id=$(jq -r '.id' <<<"$service")
+protocol=$(jq -r '.status_protocol // 1' <<<"$manifest")
+# Both stages use the same isolated environment, user and process-group deadline.
+run_probe() {
+    local check=$1
     user=$(jq -r --arg default "$current_user" '.user // $default' <<<"$service")
     account=$(getent passwd "$user")
     reason=nonzero
@@ -54,7 +57,6 @@ while IFS= read -r service; do
         home=$(jq -r --arg default "$account_home" '.home // $default' <<<"$service")
         workdir=$(jq -r --arg default "$home" '.workdir // $default' <<<"$service")
         envfile=$(jq -r '.environment_file // ""' <<<"$service")
-        check=$(jq -r 'if .desired_state == "stopped" then .stopped_check else .health_check end' <<<"$service")
         seconds=$(jq -r '.health_timeout_sec // 5' <<<"$service")
         env_args=()
         while IFS= read -r -d '' entry; do env_args+=("$entry"); done < <(
@@ -135,14 +137,57 @@ while IFS= read -r service; do
             fi
         fi
     fi
-    status=FAILED
-    if [[ $reason == ready ]]; then status=READY; else overall=20; fi
+}
+overall=0
+while IFS= read -r service; do
+    id=$(jq -r '.id' <<<"$service")
+    desired=$(jq -r '.desired_state // "running"' <<<"$service")
+    reason=ready
+    # Stopping must remain verifiable even when running prerequisites are absent.
+    if [[ $desired == running ]]; then
+        while IFS= read -r prerequisite; do
+            run_probe "$(jq -r . <<<"$prerequisite")"
+            if [[ $reason != ready ]]; then reason=waiting; break; fi
+        done < <(jq -c '.prerequisites // [] | .[]' <<<"$service")
+    fi
+    if [[ $reason != waiting ]]; then
+        run_probe "$(jq -r 'if .desired_state == "stopped" then .stopped_check else .health_check end' <<<"$service")"
+    fi
+    case $reason in
+        ready)
+            status=READY
+            if [[ $desired == stopped && $protocol == 2 ]]; then status=STOPPED; reason=stopped; fi ;;
+        waiting) status=WAITING; [[ $overall == 20 ]] || overall=10 ;;
+        *) status=FAILED; overall=20 ;;
+    esac
     jq -cn --arg id "$id" --arg status "$status" --arg reason "$reason" \
         '{id:$id,status:$status,reason:$reason}' >>"$rows" || fail 'cannot record component'
 done < <(jq -c '.services[]' <<<"$manifest")
-status=READY
-[[ $overall == 0 ]] || status=FAILED
-jq -s --arg status "$status" '{status:$status,components:.}' "$rows" >"$status_tmp" || fail 'cannot encode status'
+case $overall in
+    0) status=READY ;;
+    10) status=WAITING ;;
+    20) status=FAILED ;;
+esac
+generation=unknown
+if [[ -f $run_dir/generation ]]; then
+    generation=$(cat -- "$run_dir/generation") || fail 'cannot read generation'
+fi
+boot_id=$(cat /proc/sys/kernel/random/boot_id) || fail 'cannot read boot id'
+checked_at=$(date -u +%Y-%m-%dT%H:%M:%SZ) || fail 'cannot read clock'
+previous='{}'
+if [[ -f $state_dir/status.json ]]; then
+    previous=$(jq -ce 'select(type == "object")' "$state_dir/status.json") || fail 'cannot read previous status'
+fi
+last_success=$(jq -r '.last_success // ""' <<<"$previous")
+failures=$(jq -er '.consecutive_failures // 0 | select(type == "number" and . >= 0 and . == floor)' <<<"$previous") || fail 'invalid failure counter'
+if [[ $overall == 20 ]]; then failures=$((failures + 1)); else failures=0; fi
+if [[ $overall == 0 ]]; then last_success=$checked_at; fi
+jq -s --arg status "$status" --arg generation "$generation" --arg boot_id "$boot_id" \
+    --arg config_version "$(jq -r '.version' <<<"$manifest")" --arg checked_at "$checked_at" \
+    --arg last_success "$last_success" --argjson consecutive_failures "$failures" \
+    '{generation:$generation,boot_id:$boot_id,config_version:$config_version,
+      checked_at:$checked_at,last_success:$last_success,consecutive_failures:$consecutive_failures,
+      status:$status,components:.}' "$rows" >"$status_tmp" || fail 'cannot encode status'
 mv -f -- "$status_tmp" "$state_dir/status.json" || fail 'cannot publish status'
 if $json; then cat -- "$state_dir/status.json"; else printf 'status=%s\n' "$status"; fi
 exit "$overall"
