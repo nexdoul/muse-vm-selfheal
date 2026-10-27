@@ -25,8 +25,11 @@ log() { printf '[%s] %s\n' "$(date -Is)" "$*"; }
 # --- 1. selfheal unit bootstrap (must run before anything that needs a unit) ---
 RELEASES=/home/hatch/selfheal-releases
 if [ -x "$RELEASES/current/impl/bin/boot-ensure.sh" ]; then
+  # Do not pass SITE: both Muse VMs report hostname "htch-runtime", so a
+  # hostname-derived site names a template directory that does not exist.
+  # boot-ensure.sh reads the authoritative site from selfheal/config/site.json.
   if out=$(RELEASES="$RELEASES" SELFHEAL=/home/hatch/selfheal \
-      SITE="$(hostname -s)" bash "$RELEASES/current/impl/bin/boot-ensure.sh" 2>&1); then
+      bash "$RELEASES/current/impl/bin/boot-ensure.sh" 2>&1); then
     log "selfheal bootstrap ok: $(tr '\n' ';' <<<"$out")"
   else
     log "WARN: selfheal bootstrap failed: $(tr '\n' ';' <<<"$out")"
