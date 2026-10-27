@@ -122,7 +122,11 @@ def run():
     if stop.exists():
         return 0 if mode == 'repair' else 1  # stopped_check owns the STOPPED label
     live = processes(root, node)
-    healthy = fresh(root / 'log/daemon-log.ndjson', maximum)
+    # The daemon's log file name differs between deployments: some write
+    # log/daemon-log.ndjson, others log/auto-approve-log.ndjson.  Accept either
+    # so an idle-but-healthy daemon is not reported as stale.
+    healthy = any(fresh(root / 'log' / name, maximum)
+                  for name in ('daemon-log.ndjson', 'auto-approve-log.ndjson'))
     if mode == 'check':
         return 0 if live and healthy else 1
     if mode != 'repair':

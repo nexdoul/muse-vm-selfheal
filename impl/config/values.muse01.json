@@ -9,7 +9,7 @@
   "CF_PROBE_INSTALL_SCRIPT": "/home/hatch/workspace/setup/run-probe-install.sh",
   "APPROVER_ROOT": "/home/hatch/workspace/muse-guardian/MuseAutoApprove",
   "APPROVERCTL": "/home/hatch/selfheal/bin/approverctl",
-  "NODE_BIN": "/usr/local/bin/node",
+  "NODE_BIN": "/usr/bin/node",
   "SSH_CONFIG": "/root/.ssh/config",
   "SSH_ALIASES": "usvps hkvps krvps cnvps 101box",
   "ALIAS_REPAIR_HELPER": "/home/hatch/ssh-infra/repair-tunnel.sh",
