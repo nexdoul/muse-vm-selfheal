@@ -191,3 +191,48 @@ keepalive 使用同一引用上的派生规则（A）：
 验证新协议和检查语义：`python3 impl/tests/test_m2.py`、`python3 impl/tests/test_m2c.py`。
 反证验证：`python3 impl/tests/test_m2c.py --mutations`，仅破坏临时副本，原始输出见 `M2C_VALIDATION.txt`。
 原 M1 夹具保持不变；详细改写对照及任务指定命令的原始输出见 `M2A_REPORT.md`。
+
+## 本地 reconcile
+
+先查看条件动作计划，再执行同一清单：
+
+```bash
+impl/bin/reconcile.sh --services /tmp/release/config/services.json \
+  --state-dir /tmp/controller/state --run-dir /tmp/controller/run --validate
+impl/bin/reconcile.sh --services /tmp/release/config/services.json \
+  --state-dir /tmp/controller/state --run-dir /tmp/controller/run --plan
+impl/bin/reconcile.sh --services /tmp/release/config/services.json \
+  --state-dir /tmp/controller/state --run-dir /tmp/controller/run --json
+```
+
+`--validate` 仅校验 schema，不读取目标引用文件、不运行任何服务命令。
+`--plan` 解析目标引用，输出条件动作 JSON 数组；不运行健康探测、prepare、repair 或 systemctl，
+也不写 state/run 目录。每项的 `when` 表示真正执行时仍须满足的条件；计划不声称当前服务已坏。
+没有两个模式选项时才执行。参数/清单/引用错误退出 2，reconcile 锁竞争退出 10。
+
+`repair: null` 和 `ownership: external` 都禁止 prepare 与修复，只观察健康状态。
+`repair` 字符串或非空字符串数组按顺序执行；数组中任一步失败即停止该项修复。
+缺省 repair 时用 `unit`（或 `environment.UNIT`）执行 systemctl start/stop。
+running 且目标检查失败、prerequisites 通过时，先顺序执行 `prepare` 数组；stopped 跳过 prepare
+和运行前置条件。默认 systemctl 修复在 Result=start-limit-hit 时先 reset-failed。
+
+每次修复后等待 `settle_sec`（默认 3 秒，可设 0），再复查；命令超时使用 `timeout_sec`（默认 30 秒）。
+命令与探测复用 health.sh 的用户、环境和超时回收机制。默认 unit 的终态判定接受 active，
+或 inactive + Result=success + ExecMainStatus=0；停止目标只接受后者。随后仍须通过清单的目标检查，
+所以有额外业务条件的服务不会仅因进程正常退出就被报绿。自定义 repair 的成功条件由目标检查定义。
+
+末尾使用原样 `--services/--state-dir/--run-dir` 调用 health.sh 并输出其结果；退出码取本轮修复
+和最终扫描中较严重者（FAILED=20 优先于 WAITING=10）。因此，修复命令非零但最终探测已绿时，
+health JSON 可为 READY，reconcile 仍退出 20；自动化必须同时检查退出码。中间探测写入临时目录，
+不会增加正式 status.json 的失败计数。`kind` 只作清单元数据，核心不按 kind 或服务 ID 分支。
+
+新增 `config/services.muse02.reconcile.json` 是完整的十项迁移模板：审批用 desired_state_ref，
+本地 sshd 用 prepare，隧道用 repair:null + ownership:external + prerequisites。
+原 `services.muse02.json` 保持 M2/M2C 的健康检查入口契约，不直接用于新 reconcile；
+它的审批项仍按上文旧检查规则工作。新模板的审批停止检查验证 worker_pid 为空或零；
+running 前置条件检查 enabled 和停止标记，修复使用 unit，不调用会清除停止标记的 approverctl start。
+新模板必须把 desired_state_ref.file 与 APPROVER_CONFIG 配为同一个审批配置文件。
+原配置缺 desired_state 时旧脚本默认 stopped，新引用会明确退出 2，部署时需填写合法目标值。
+
+切换接口与 release 布局见 [migration/README.md](migration/README.md)。
+M3 测试：`python3 impl/tests/test_m3.py`；反证：`python3 impl/tests/test_m3.py --mutations`。

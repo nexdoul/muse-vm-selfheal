@@ -1,0 +1,220 @@
+$ python3 /home/ribon/workspace/selfheal-merge/fixture_m1.py impl/bin/health.sh
+health execution contract: PASS
+[exit=0]
+
+$ python3 impl/tests/test_m2.py
+protocol: WAITING, failure precedence (both orders), STOPPED, metadata, atomic output PASS
+manifest probes: exact listener, approver single call/live PID/freshness/stopped, keepalive freshness/design-stopped, HTTP and unit conjunction PASS
+tunnels: real pgrep matches SSH-shaped argv, rejects wrong port/host and absent process PASS
+M2 regression: PASS
+[exit=0]
+
+$ python3 impl/tests/test_m2c.py
+test_conflict (__main__.Tests.test_conflict) ... ok
+test_infrastructure (__main__.Tests.test_infrastructure) ... ok
+test_install_patch (__main__.Tests.test_install_patch) ... ok
+test_keepalive (__main__.Tests.test_keepalive) ... ok
+test_reference (__main__.Tests.test_reference) ... ok
+test_reference_errors (__main__.Tests.test_reference_errors) ... ok
+test_tunnels_waiting (__main__.Tests.test_tunnels_waiting) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 5.710s
+
+OK
+[exit=0]
+
+$ bash -n impl/bin/reconcile.sh
+[exit=0]
+
+$ bash -n impl/migration/*.sh
+[exit=0]
+
+$ for script in impl/migration/*.sh; do bash -n "$script" || exit; done
+[exit=0]
+
+$ python3 impl/tests/test_m3.py
+test_automatic_rollback (__main__.MigrationTests.test_automatic_rollback) ... ok
+test_dry_run (__main__.MigrationTests.test_dry_run) ... ok
+test_preflight_failure_restores_old (__main__.MigrationTests.test_preflight_failure_restores_old) ... ok
+test_switch_and_rollback (__main__.MigrationTests.test_switch_and_rollback) ... ok
+test_external (__main__.Tests.test_external) ... ok
+test_plan (__main__.Tests.test_plan) ... ok
+test_precedence (__main__.Tests.test_precedence) ... FAIL
+test_prepare_custom_repair_and_recheck (__main__.Tests.test_prepare_custom_repair_and_recheck) ... ok
+test_reference_stop_and_lock (__main__.Tests.test_reference_stop_and_lock) ... ok
+test_repair_null (__main__.Tests.test_repair_null) ... FAIL
+test_reset_and_terminal (__main__.Tests.test_reset_and_terminal) ... ok
+test_static_and_template (__main__.Tests.test_static_and_template) ... ok
+test_terminal_guard_independent_of_health (__main__.Tests.test_terminal_guard_independent_of_health) ... ok
+test_validate (__main__.Tests.test_validate) ... ok
+
+======================================================================
+FAIL: test_precedence (__main__.Tests.test_precedence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m3.py", line 128, in test_precedence
+    self.invoke(rows, rc=20)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m3.py", line 69, in invoke
+    self.assertEqual(p.returncode, rc, (p.stdout, p.stderr))
+AssertionError: 10 != 20 : ('status=WAITING\n', '')
+
+======================================================================
+FAIL: test_repair_null (__main__.Tests.test_repair_null)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m3.py", line 104, in test_repair_null
+    self.invoke([s], rc=20)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m3.py", line 69, in invoke
+    self.assertEqual(p.returncode, rc, (p.stdout, p.stderr))
+AssertionError: 2 != 20 : ('status=FAILED\n', '/home/ribon/workspace/selfheal-merge/work/impl/bin/reconcile.sh: line 133: unexpected EOF while looking for matching `"\'\n')
+
+----------------------------------------------------------------------
+Ran 14 tests in 15.057s
+
+FAILED (failures=2)
+[exit=1]
+
+Rerun after transient source-change symptoms; previous failures retained above.
+
+$ python3 impl/tests/test_m3.py Tests.test_precedence Tests.test_repair_null
+test_precedence (__main__.Tests.test_precedence) ... ok
+test_repair_null (__main__.Tests.test_repair_null) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 2.422s
+
+OK
+[exit=0]
+
+$ bash -n impl/bin/reconcile.sh
+[exit=0]
+
+$ python3 impl/tests/test_m3.py
+test_automatic_rollback (__main__.MigrationTests.test_automatic_rollback) ... ok
+test_dry_run (__main__.MigrationTests.test_dry_run) ... ok
+test_preflight_failure_restores_old (__main__.MigrationTests.test_preflight_failure_restores_old) ... ok
+test_switch_and_rollback (__main__.MigrationTests.test_switch_and_rollback) ... ok
+test_external (__main__.Tests.test_external) ... ok
+test_plan (__main__.Tests.test_plan) ... ok
+test_precedence (__main__.Tests.test_precedence) ... ok
+test_prepare_custom_repair_and_recheck (__main__.Tests.test_prepare_custom_repair_and_recheck) ... ok
+test_reference_stop_and_lock (__main__.Tests.test_reference_stop_and_lock) ... ok
+test_repair_null (__main__.Tests.test_repair_null) ... ok
+test_reset_and_terminal (__main__.Tests.test_reset_and_terminal) ... ok
+test_static_and_template (__main__.Tests.test_static_and_template) ... ok
+test_terminal_guard_independent_of_health (__main__.Tests.test_terminal_guard_independent_of_health) ... ok
+test_validate (__main__.Tests.test_validate) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 17.182s
+
+OK
+[exit=0]
+
+$ grep -nE "approver|local-sshd|douyin|tunnel-krvps|tunnel-usvps" impl/bin/reconcile.sh || echo "no hardcoded service ids"
+no hardcoded service ids
+[exit=0]
+
+$ impl/migration/quiesce-old.sh --dry-run --unit fake-old.service --root /tmp/fake
+DRY-RUN quiesce-old: root=/tmp/fake; no writes or commands executed
+record active/enabled state: fake-old.service -> /tmp/fake/old-state.json
+disable all hook/bootstrap entry files: <repeat --hook PATH>
+stop and disable: fake-old.service
+[exit=0]
+
+$ impl/migration/enable-new.sh --dry-run --root /tmp/fake --services impl/config/services.muse02.json
+DRY-RUN enable-new: root=/tmp/fake; no writes or commands executed
+validate complete release and bundled manifest: impl/config/services.muse02.json
+atomically switch /tmp/fake/current -> <RELEASE> (bin/lib/config/adapters/units/hooks)
+link --unit-link and --hook-link through current; daemon-reload; enable --now <NEW_UNIT>
+health.sh --json: require exit 0 and exact manifest ID multiset; on failure rollback all references and old controller
+[exit=0]
+
+$ impl/migration/rollback.sh --dry-run --root /tmp/fake
+DRY-RUN rollback: root=/tmp/fake; no writes or commands executed
+disable new restart entry; stop/disable new unit; restore release/unit/hook references
+restore old hook/bootstrap entries and recorded enabled/active state
+[exit=0]
+
+$ python3 impl/tests/test_m3.py --mutations
+MUTATION: remove repair:null execution guard
+test_repair_null (__main__.Tests.test_repair_null) ... FAIL
+
+======================================================================
+FAIL: test_repair_null (__main__.Tests.test_repair_null)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m3.py", line 106, in test_repair_null
+    self.assertFalse(marker.exists())
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 1 test in 0.550s
+
+FAILED (failures=1)
+DETECTED (exit=1)
+MUTATION: WAITING overwrites FAILED
+test_precedence (__main__.Tests.test_precedence) ... FAIL
+
+======================================================================
+FAIL: test_precedence (__main__.Tests.test_precedence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m3.py", line 128, in test_precedence
+    self.invoke(rows, rc=20)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m3.py", line 69, in invoke
+    self.assertEqual(p.returncode, rc, (p.stdout, p.stderr))
+AssertionError: 10 != 20 : ('status=WAITING\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.573s
+
+FAILED (failures=1)
+DETECTED (exit=1)
+MUTATION: remove terminal state guard
+test_terminal_guard_independent_of_health (__main__.Tests.test_terminal_guard_independent_of_health) ... FAIL
+
+======================================================================
+FAIL: test_terminal_guard_independent_of_health (__main__.Tests.test_terminal_guard_independent_of_health)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m3.py", line 169, in test_terminal_guard_independent_of_health
+    self.invoke([s], rc=rc)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m3.py", line 69, in invoke
+    self.assertEqual(p.returncode, rc, (p.stdout, p.stderr))
+AssertionError: 0 != 20 : ('status=READY\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 1.784s
+
+FAILED (failures=1)
+DETECTED (exit=1)
+Mutation checks: PASS; repository sources unchanged
+[exit=0]
+
+$ python3 impl/tests/test_m3.py
+test_automatic_rollback (__main__.MigrationTests.test_automatic_rollback) ... ok
+test_dry_run (__main__.MigrationTests.test_dry_run) ... ok
+test_preflight_failure_restores_old (__main__.MigrationTests.test_preflight_failure_restores_old) ... ok
+test_switch_and_rollback (__main__.MigrationTests.test_switch_and_rollback) ... ok
+test_external (__main__.Tests.test_external) ... ok
+test_plan (__main__.Tests.test_plan) ... ok
+test_precedence (__main__.Tests.test_precedence) ... ok
+test_prepare_custom_repair_and_recheck (__main__.Tests.test_prepare_custom_repair_and_recheck) ... ok
+test_reference_stop_and_lock (__main__.Tests.test_reference_stop_and_lock) ... ok
+test_repair_null (__main__.Tests.test_repair_null) ... ok
+test_reset_and_terminal (__main__.Tests.test_reset_and_terminal) ... ok
+test_static_and_template (__main__.Tests.test_static_and_template) ... ok
+test_terminal_guard_independent_of_health (__main__.Tests.test_terminal_guard_independent_of_health) ... ok
+test_validate (__main__.Tests.test_validate) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 16.382s
+
+OK
+[exit=0]
+
+$ git diff --check
+[exit=0]
+

@@ -1,0 +1,208 @@
+{
+  "version": 1,
+  "status_protocol": 2,
+  "services": [
+    {
+      "id": "volume",
+      "kind": "infrastructure",
+      "ownership": "external",
+      "repair": null,
+      "desired_state": "running",
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "VOLUME_PATH": "<VOLUME_PATH>",
+        "VOLUME_SOURCE": "<VOLUME_SOURCE_PATTERN>"
+      },
+      "health_check": "source=$(findmnt -n -o SOURCE \"$VOLUME_PATH\") || exit 1\nprintf \"%s\\n\" \"$source\" | grep -q -- \"$VOLUME_SOURCE\"",
+      "prerequisites": []
+    },
+    {
+      "id": "config",
+      "kind": "infrastructure",
+      "ownership": "external",
+      "repair": null,
+      "desired_state": "running",
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "SITE_CONFIG": "<SITE_CONFIG>",
+        "SERVICES_CONFIG": "<SERVICES_CONFIG>"
+      },
+      "health_check": "jq -e '.version == 1' \"$SITE_CONFIG\" >/dev/null && jq -e '.version == 1' \"$SERVICES_CONFIG\" >/dev/null",
+      "prerequisites": []
+    },
+    {
+      "id": "tunnels",
+      "kind": "infrastructure",
+      "ownership": "external",
+      "repair": null,
+      "desired_state": "running",
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "SITE_CONFIG": "<SITE_CONFIG>"
+      },
+      "health_check": "exit 0",
+      "prerequisites": [
+        "jq -e '[.relays[] | select(.reverse_port == null)] | length == 0' \"$SITE_CONFIG\" >/dev/null"
+      ]
+    },
+    {
+      "desired_state": "running",
+      "id": "local-sshd",
+      "kind": "sshd-localhost",
+      "relay": null,
+      "retry_backoff_sec": 5,
+      "retry_budget": 5,
+      "timeout_sec": 30,
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "UNIT": "muse-selfheal-sshd.service",
+        "LISTEN_ADDRESS": "127.0.0.1:22",
+        "PREPARE": "<SSHD_PREPARE>"
+      },
+      "health_check": "systemctl is-active --quiet \"$UNIT\" || exit 1\nlisteners=$(ss -tlnH) || exit 1\nprintf \"%s\\n\" \"$listeners\" | awk -v address=\"$LISTEN_ADDRESS\" '$4 == address { found=1 } END { exit !found }'",
+      "stopped_check": "load=$(systemctl show --property=LoadState --value \"$UNIT\") || exit 1\n[ \"$load\" = loaded ] || exit 1\nstate=$(systemctl show --property=ActiveState --value \"$UNIT\") || exit 1\n[ \"$state\" = inactive ]",
+      "prepare": [
+        "\"$PREPARE\""
+      ]
+    },
+    {
+      "desired_state": "running",
+      "id": "tunnel-krvps",
+      "kind": "ssh-reverse-tunnel",
+      "relay": "krvps",
+      "retry_backoff_sec": 10,
+      "retry_budget": 5,
+      "timeout_sec": 30,
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "prerequisites": [
+        "[[ \"$REVERSE_PORT\" =~ ^[0-9]+$ ]] && (( 10#$REVERSE_PORT >= 1 && 10#$REVERSE_PORT <= 65535 )) && [[ -n \"$RELAY_HOST\" && \"$RELAY_HOST\" != *\"<\"* ]]"
+      ],
+      "environment": {
+        "REVERSE_PORT": "<REVERSE_PORT>",
+        "RELAY_HOST": "<RELAY_HOST>"
+      },
+      "health_check": "host=$(printf \"%s\" \"$RELAY_HOST\" | sed 's/[][\\\\.^$*+?(){}|]/\\\\&/g') || exit 1\npgrep -f \"(^|/)[s]sh[[:space:]].*[[:space:]]-R[[:space:]]+[^[:space:]]*:${REVERSE_PORT}:[^[:space:]]*[[:space:]].*(@|[[:space:]])${host}([[:space:]]|$)\" >/dev/null",
+      "repair": null,
+      "ownership": "external"
+    },
+    {
+      "desired_state": "running",
+      "id": "tunnel-usvps",
+      "kind": "ssh-reverse-tunnel",
+      "relay": "usvps",
+      "retry_backoff_sec": 10,
+      "retry_budget": 5,
+      "timeout_sec": 30,
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "prerequisites": [
+        "[[ \"$REVERSE_PORT\" =~ ^[0-9]+$ ]] && (( 10#$REVERSE_PORT >= 1 && 10#$REVERSE_PORT <= 65535 )) && [[ -n \"$RELAY_HOST\" && \"$RELAY_HOST\" != *\"<\"* ]]"
+      ],
+      "environment": {
+        "REVERSE_PORT": "<REVERSE_PORT>",
+        "RELAY_HOST": "<RELAY_HOST>"
+      },
+      "health_check": "host=$(printf \"%s\" \"$RELAY_HOST\" | sed 's/[][\\\\.^$*+?(){}|]/\\\\&/g') || exit 1\npgrep -f \"(^|/)[s]sh[[:space:]].*[[:space:]]-R[[:space:]]+[^[:space:]]*:${REVERSE_PORT}:[^[:space:]]*[[:space:]].*(@|[[:space:]])${host}([[:space:]]|$)\" >/dev/null",
+      "repair": null,
+      "ownership": "external"
+    },
+    {
+      "id": "approver",
+      "kind": "muse-auto-approve",
+      "relay": null,
+      "retry_backoff_sec": 30,
+      "retry_budget": 3,
+      "timeout_sec": 60,
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "user": "root",
+      "environment": {
+        "APPROVER_CONFIG": "<APPROVER_CONFIG>",
+        "APPROVERCTL": "<APPROVERCTL>",
+        "STOP_MARKER": "<APPROVER_STOP_MARKER>"
+      },
+      "health_check": "jq -e '.version == 1' \"$APPROVER_CONFIG\" >/dev/null || exit 1\ndesired=$(jq -r '.desired_state // \"stopped\"' \"$APPROVER_CONFIG\") || exit 1\nenabled=$(jq -r '.enabled // false' \"$APPROVER_CONFIG\") || exit 1\nif [ \"$desired\" = stopped ] || [ \"$enabled\" != true ]; then exit 0; fi\nst=$(\"$APPROVERCTL\" status) || exit 1\npid=$(printf '%s' \"$st\" | jq -er '.worker_pid | select(type == \"number\" and . > 0 and . == floor)') || exit 1\nlast=$(printf '%s' \"$st\" | jq -er '.evidence.last_list_success_at | select(type == \"string\" and length > 0)') || exit 1\nkill -0 \"$pid\" 2>/dev/null || exit 1\nlast_epoch=$(date -d \"$last\" +%s 2>/dev/null) || exit 1\nnow_epoch=$(date -u +%s) || exit 1\nage=$((now_epoch - last_epoch))\n[ \"$age\" -ge 0 ] && [ \"$age\" -le 120 ]",
+      "desired_state_ref": {
+        "file": "<APPROVER_CONFIG>",
+        "pointer": "/desired_state"
+      },
+      "stopped_check": "st=$(\"$APPROVERCTL\" status) || exit 1\nprintf \"%s\" \"$st\" | jq -e '(.worker_pid == null or .worker_pid == 0)' >/dev/null",
+      "unit": "muse-selfheal-approver.service",
+      "prerequisites": [
+        "jq -e '.enabled == true' \"$APPROVER_CONFIG\" >/dev/null && [ ! -e \"$STOP_MARKER\" ]"
+      ]
+    },
+    {
+      "id": "douyin-parse",
+      "kind": "local-http",
+      "desired_state": "running",
+      "relay": null,
+      "retry_backoff_sec": 5,
+      "retry_budget": 5,
+      "timeout_sec": 30,
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "UNIT": "muse-selfheal-douyin-parse.service",
+        "HEALTH_URL": "http://127.0.0.1:8765/healthz"
+      },
+      "health_check": "curl -fsS -m 3 \"$HEALTH_URL\" && systemctl is-active --quiet \"$UNIT\"",
+      "stopped_check": "load=$(systemctl show --property=LoadState --value \"$UNIT\") || exit 1\n[ \"$load\" = loaded ] || exit 1\nstate=$(systemctl show --property=ActiveState --value \"$UNIT\") || exit 1\n[ \"$state\" = inactive ]"
+    },
+    {
+      "id": "douyin-clip-mcp",
+      "kind": "local-http",
+      "desired_state": "running",
+      "relay": null,
+      "retry_backoff_sec": 5,
+      "retry_budget": 5,
+      "timeout_sec": 30,
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "UNIT": "muse-selfheal-douyin-clip-mcp.service",
+        "HEALTH_URL": "http://127.0.0.1:8766/healthz"
+      },
+      "health_check": "curl -fsS -m 3 \"$HEALTH_URL\" && systemctl is-active --quiet \"$UNIT\"",
+      "stopped_check": "load=$(systemctl show --property=LoadState --value \"$UNIT\") || exit 1\n[ \"$load\" = loaded ] || exit 1\nstate=$(systemctl show --property=ActiveState --value \"$UNIT\") || exit 1\n[ \"$state\" = inactive ]"
+    },
+    {
+      "id": "gemini-keepalive",
+      "kind": "local-http",
+      "relay": null,
+      "retry_backoff_sec": 30,
+      "retry_budget": 5,
+      "timeout_sec": 60,
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "UNIT": "muse-selfheal-gemini-keepalive.service",
+        "LOG": "<KEEPALIVE_LOG>",
+        "MAX_LOG_AGE_SEC": "120"
+      },
+      "health_check": "systemctl is-active --quiet \"$UNIT\" || exit 1\n[[ \"$MAX_LOG_AGE_SEC\" =~ ^[0-9]+$ ]] || exit 1\n[ -f \"$LOG\" ] || exit 1\nlast_epoch=$(stat -c %Y \"$LOG\") || exit 1\nnow_epoch=$(date +%s) || exit 1\nage=$((now_epoch - last_epoch))\n[ \"$age\" -ge 0 ] && [ \"$age\" -le \"$MAX_LOG_AGE_SEC\" ]",
+      "stopped_check": "load=$(systemctl show --property=LoadState --value \"$UNIT\") || exit 1\n[ \"$load\" = loaded ] || exit 1\nstate=$(systemctl show --property=ActiveState --value \"$UNIT\") || exit 1\n[ \"$state\" = inactive ] || exit 1\nresult=$(systemctl show --property=Result --value \"$UNIT\") || exit 1\n[ \"$result\" = success ] || exit 1\ncode=$(systemctl show --property=ExecMainStatus --value \"$UNIT\") || exit 1\n[ \"$code\" = 0 ]",
+      "desired_state_ref": {
+        "file": "<KEEPALIVE_CONFIG>",
+        "pointer": "/accounts",
+        "when_empty": "stopped",
+        "when_nonempty": "running"
+      }
+    }
+  ]
+}
