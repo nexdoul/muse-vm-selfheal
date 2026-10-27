@@ -1,0 +1,56 @@
+$ python3 /home/ribon/workspace/selfheal-merge/fixture_m1.py impl/bin/health.sh
+health execution contract: PASS
+[exit 0]
+
+$ bash -n impl/bin/health.sh
+[exit 0]
+
+$ jq . impl/config/services.example.json
+{
+  "version": 1,
+  "services": [
+    {
+      "id": "example-running",
+      "desired_state": "running",
+      "home": "/tmp",
+      "workdir": "/tmp",
+      "environment": {
+        "EXAMPLE_VALUE": "demo"
+      },
+      "environment_file": "/dev/null",
+      "health_check": "/bin/true",
+      "health_timeout_sec": 2,
+      "stopped_check": "exit 0"
+    },
+    {
+      "id": "example-stopped",
+      "desired_state": "stopped",
+      "home": "/tmp",
+      "workdir": "/tmp",
+      "environment_file": "/dev/null",
+      "health_check": "/bin/true",
+      "health_timeout_sec": 2,
+      "stopped_check": "exit 0"
+    }
+  ]
+}
+[exit 0]
+
+$ impl/bin/health.sh --services impl/config/services.example.json --state-dir /tmp/x/state --run-dir /tmp/x/run --json
+{
+  "status": "READY",
+  "components": [
+    {
+      "id": "example-running",
+      "status": "READY",
+      "reason": "ready"
+    },
+    {
+      "id": "example-stopped",
+      "status": "READY",
+      "reason": "ready"
+    }
+  ]
+}
+[exit 0]
+
