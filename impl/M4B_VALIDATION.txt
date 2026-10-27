@@ -1,0 +1,583 @@
+M4 baseline (23 tests)
+======================================================================
+test_alias_check (__main__.Tests.test_alias_check) ... ok
+test_alias_repair (__main__.Tests.test_alias_repair) ... ok
+test_approver_check (__main__.Tests.test_approver_check) ... ok
+test_approver_identity (__main__.Tests.test_approver_identity) ... ok
+test_approver_log_timestamp (__main__.Tests.test_approver_log_timestamp) ... ok
+test_approver_precheck (__main__.Tests.test_approver_precheck) ... ok
+test_approver_stale_repair (__main__.Tests.test_approver_stale_repair) ... ok
+test_approver_stop (__main__.Tests.test_approver_stop) ... ok
+test_cf_check (__main__.Tests.test_cf_check) ... ok
+test_cf_missing_unit (__main__.Tests.test_cf_missing_unit) ... ok
+test_cf_repair_environment_and_recheck (__main__.Tests.test_cf_repair_environment_and_recheck) ... ok
+test_complete_manifest (__main__.Tests.test_complete_manifest) ... ok
+test_external (__main__.Tests.test_external) ... ok
+test_identity_check_argument (__main__.Tests.test_identity_check_argument) ... ok
+test_identity_cwd (__main__.Tests.test_identity_cwd) ... ok
+test_identity_node_basename (__main__.Tests.test_identity_node_basename) ... ok
+test_identity_script_path (__main__.Tests.test_identity_script_path) ... ok
+test_identity_starttime_reuse (__main__.Tests.test_identity_starttime_reuse) ... ok
+test_identity_uid (__main__.Tests.test_identity_uid) ... ok
+test_identity_zombie (__main__.Tests.test_identity_zombie) ... ok
+test_keepalive (__main__.Tests.test_keepalive) ... ok
+test_marker_validation (__main__.Tests.test_marker_validation) ... ok
+test_validate_plan (__main__.Tests.test_validate_plan) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 18.228s
+
+OK
+
+
+M4 mutations (initial 22)
+======================================================================
+MUTATION: identity UID bypassed
+test_identity_uid (__main__.Tests.test_identity_uid) ... FAIL
+
+======================================================================
+FAIL: test_identity_uid (__main__.Tests.test_identity_uid)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 345, in test_identity_uid
+    self.assertIsNone(self.approver.identity(p.pid, self.app, self.node))
+AssertionError: '154679603' is not None
+
+----------------------------------------------------------------------
+Ran 1 test in 0.006s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: identity node basename bypassed
+test_identity_node_basename (__main__.Tests.test_identity_node_basename) ... FAIL
+
+======================================================================
+FAIL: test_identity_node_basename (__main__.Tests.test_identity_node_basename)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 357, in test_identity_node_basename
+    self.assert_rejected(self.identity_process(argv0='/usr/bin/python3'))
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 176, in assert_rejected
+    self.assertIsNone(self.approver.identity(p.pid, self.app, self.node))
+AssertionError: '154679611' is not None
+
+----------------------------------------------------------------------
+Ran 1 test in 0.006s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: identity cwd bypassed
+test_identity_cwd (__main__.Tests.test_identity_cwd) ... FAIL
+
+======================================================================
+FAIL: test_identity_cwd (__main__.Tests.test_identity_cwd)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 361, in test_identity_cwd
+    self.assert_rejected(self.identity_process(cwd=other))
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 176, in assert_rejected
+    self.assertIsNone(self.approver.identity(p.pid, self.app, self.node))
+AssertionError: '154679619' is not None
+
+----------------------------------------------------------------------
+Ran 1 test in 0.006s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: identity script path bypassed
+test_identity_script_path (__main__.Tests.test_identity_script_path) ... FAIL
+
+======================================================================
+FAIL: test_identity_script_path (__main__.Tests.test_identity_script_path)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 364, in test_identity_script_path
+    self.assert_rejected(self.identity_process(script=self.app/'other.cjs'))
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 176, in assert_rejected
+    self.assertIsNone(self.approver.identity(p.pid, self.app, self.node))
+AssertionError: '154679627' is not None
+
+----------------------------------------------------------------------
+Ran 1 test in 0.005s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: identity --check accepted
+test_identity_check_argument (__main__.Tests.test_identity_check_argument) ... FAIL
+
+======================================================================
+FAIL: test_identity_check_argument (__main__.Tests.test_identity_check_argument)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 367, in test_identity_check_argument
+    self.assert_rejected(self.identity_process(args=('--check',)))
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 176, in assert_rejected
+    self.assertIsNone(self.approver.identity(p.pid, self.app, self.node))
+AssertionError: '154679635' is not None
+
+----------------------------------------------------------------------
+Ran 1 test in 0.006s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: identity zombie accepted
+test_identity_zombie (__main__.Tests.test_identity_zombie) ... FAIL
+
+======================================================================
+FAIL: test_identity_zombie (__main__.Tests.test_identity_zombie)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 388, in test_identity_zombie
+    self.assertIsNone(self.approver.identity(p.pid, self.app, self.node))
+AssertionError: '154679643' is not None
+
+----------------------------------------------------------------------
+Ran 1 test in 0.248s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: identity starttime field wrong
+test_identity_starttime_reuse (__main__.Tests.test_identity_starttime_reuse) ... FAIL
+
+======================================================================
+FAIL: test_identity_starttime_reuse (__main__.Tests.test_identity_starttime_reuse)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 394, in test_identity_starttime_reuse
+    self.assertEqual(token, Path(f'/proc/{p.pid}/stat').read_text().rsplit(')', 1)[1].split()[19])
+AssertionError: '0' != '154679675'
+- 0
++ 154679675
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.006s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: identity starttime recheck bypassed
+test_identity_starttime_reuse (__main__.Tests.test_identity_starttime_reuse) ... FAIL
+
+======================================================================
+FAIL: test_identity_starttime_reuse (__main__.Tests.test_identity_starttime_reuse)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 401, in test_identity_starttime_reuse
+    send.assert_not_called()
+  File "/home/ribon/.hermes/node_modules/hermes-agent/runtime/python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/unittest/mock.py", line 900, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'pidfd_send_signal' to not have been called. Called 1 times.
+Calls: [call(3, <Signals.SIGTERM: 15>)].
+
+----------------------------------------------------------------------
+Ran 1 test in 0.008s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: stop check returns success
+test_approver_stop (__main__.Tests.test_approver_stop) ... FAIL
+
+======================================================================
+FAIL: test_approver_stop (__main__.Tests.test_approver_stop)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 282, in test_approver_stop
+    self.adapter('approver-check', rc=1)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 199, in adapter
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 1 : ('', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.033s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: freshness threshold enlarged
+test_approver_log_timestamp (__main__.Tests.test_approver_log_timestamp) ... FAIL
+
+======================================================================
+FAIL: test_approver_log_timestamp (__main__.Tests.test_approver_log_timestamp)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 416, in test_approver_log_timestamp
+    self.adapter('approver-check', rc=1)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 199, in adapter
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 1 : ('', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.069s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: freshness uses mtime
+test_approver_log_timestamp (__main__.Tests.test_approver_log_timestamp) ... FAIL
+
+======================================================================
+FAIL: test_approver_log_timestamp (__main__.Tests.test_approver_log_timestamp)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 416, in test_approver_log_timestamp
+    self.adapter('approver-check', rc=1)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 199, in adapter
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 1 : ('', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.070s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: freshness reads first event
+test_approver_log_timestamp (__main__.Tests.test_approver_log_timestamp) ... FAIL
+
+======================================================================
+FAIL: test_approver_log_timestamp (__main__.Tests.test_approver_log_timestamp)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 424, in test_approver_log_timestamp
+    self.adapter('approver-check', rc=1)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 199, in adapter
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 1 : ('', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.154s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: probe ignores permissions
+test_cf_check (__main__.Tests.test_cf_check) ... FAIL
+
+======================================================================
+FAIL: test_cf_check (__main__.Tests.test_cf_check)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 232, in test_cf_check
+    self.secret.chmod(0o644); self.scan('cf-probe','FAILED')
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 152, in scan
+    out=self.invoke([self.rows[id]],rc=20 if status=='FAILED' else 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 148, in invoke
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 20 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T05:58:06Z",\n  "last_success": "2026-10-27T05:58:06Z",\n  "consecutive_failures": 0,\n  "status": "READY",\n  "components": [\n    {\n      "id": "cf-probe",\n      "status": "READY",\n      "reason": "ready"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.693s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: alias check always succeeds
+test_alias_check (__main__.Tests.test_alias_check) ... FAIL
+
+======================================================================
+FAIL: test_alias_check (__main__.Tests.test_alias_check)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 264, in test_alias_check
+    self.scan('ssh-alias','FAILED')
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 152, in scan
+    out=self.invoke([self.rows[id]],rc=20 if status=='FAILED' else 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 148, in invoke
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 20 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T05:58:06Z",\n  "last_success": "2026-10-27T05:58:06Z",\n  "consecutive_failures": 0,\n  "status": "READY",\n  "components": [\n    {\n      "id": "ssh-alias",\n      "status": "READY",\n      "reason": "ready"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.234s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: approver ignores log freshness
+test_approver_check (__main__.Tests.test_approver_check) ... FAIL
+
+======================================================================
+FAIL: test_approver_check (__main__.Tests.test_approver_check)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 299, in test_approver_check
+    self.write_log(age=1000); self.scan('approver','FAILED')
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 152, in scan
+    out=self.invoke([self.rows[id]],rc=20 if status=='FAILED' else 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 148, in invoke
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 20 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T05:58:07Z",\n  "last_success": "2026-10-27T05:58:07Z",\n  "consecutive_failures": 0,\n  "status": "READY",\n  "components": [\n    {\n      "id": "approver",\n      "status": "READY",\n      "reason": "ready"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.570s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: approver ignores process presence
+test_approver_check (__main__.Tests.test_approver_check) ... FAIL
+
+======================================================================
+FAIL: test_approver_check (__main__.Tests.test_approver_check)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 303, in test_approver_check
+    self.write_log(); p.terminate(); p.wait(); self.scan('approver','FAILED')
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 152, in scan
+    out=self.invoke([self.rows[id]],rc=20 if status=='FAILED' else 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 148, in invoke
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 20 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T05:58:08Z",\n  "last_success": "2026-10-27T05:58:08Z",\n  "consecutive_failures": 0,\n  "status": "READY",\n  "components": [\n    {\n      "id": "approver",\n      "status": "READY",\n      "reason": "ready"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 1.280s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: stop marker ignored
+test_approver_stop (__main__.Tests.test_approver_stop) ... FAIL
+
+======================================================================
+FAIL: test_approver_stop (__main__.Tests.test_approver_stop)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 283, in test_approver_stop
+    self.scan('approver','STOPPED')
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 152, in scan
+    out=self.invoke([self.rows[id]],rc=20 if status=='FAILED' else 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 148, in invoke
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 20 != 0 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T05:58:08Z",\n  "last_success": "",\n  "consecutive_failures": 1,\n  "status": "FAILED",\n  "components": [\n    {\n      "id": "approver",\n      "status": "FAILED",\n      "reason": "nonzero"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.197s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: wrong process identity accepted
+test_approver_identity (__main__.Tests.test_approver_identity) ... FAIL
+
+======================================================================
+FAIL: test_approver_identity (__main__.Tests.test_approver_identity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 308, in test_approver_identity
+    self.scan('approver','FAILED')
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 152, in scan
+    out=self.invoke([self.rows[id]],rc=20 if status=='FAILED' else 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 148, in invoke
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 20 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T05:58:09Z",\n  "last_success": "2026-10-27T05:58:09Z",\n  "consecutive_failures": 0,\n  "status": "READY",\n  "components": [\n    {\n      "id": "approver",\n      "status": "READY",\n      "reason": "ready"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.182s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: stale process not terminated
+test_approver_stale_repair (__main__.Tests.test_approver_stale_repair) ... FAIL
+
+======================================================================
+FAIL: test_approver_stale_repair (__main__.Tests.test_approver_stale_repair)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 326, in test_approver_stale_repair
+    p.wait(timeout=3)
+  File "/home/ribon/.hermes/node_modules/hermes-agent/runtime/python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/.hermes/node_modules/hermes-agent/runtime/python/cpython-3.11.16-linux-x86_64-gnu/lib/python3.11/subprocess.py", line 2045, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['node', '/home/ribon/.hermes/cache/scratch/m4-xk1kr0ql/app with spaces/muse-daemon.cjs']' timed out after 3 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 328, in test_approver_stale_repair
+    self.fail('stale verified daemon did not receive TERM')
+AssertionError: stale verified daemon did not receive TERM
+
+----------------------------------------------------------------------
+Ran 1 test in 3.291s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: precheck bypassed
+test_approver_precheck (__main__.Tests.test_approver_precheck) ... FAIL
+
+======================================================================
+FAIL: test_approver_precheck (__main__.Tests.test_approver_precheck)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 432, in test_approver_precheck
+    self.invoke([self.rows['approver']],mode='reconcile',rc=20)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 148, in invoke
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 20 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T05:58:13Z",\n  "last_success": "2026-10-27T05:58:13Z",\n  "consecutive_failures": 0,\n  "status": "READY",\n  "components": [\n    {\n      "id": "approver",\n      "status": "READY",\n      "reason": "ready"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.854s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: external repair guard removed
+test_external (__main__.Tests.test_external) ... FAIL
+
+======================================================================
+FAIL: test_external (__main__.Tests.test_external)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 449, in test_external
+    self.assertFalse(marker.exists())
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 1 test in 3.911s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: loaded probe unnecessarily reinstalled
+test_cf_repair_environment_and_recheck (__main__.Tests.test_cf_repair_environment_and_recheck) ... FAIL
+
+======================================================================
+FAIL: test_cf_repair_environment_and_recheck (__main__.Tests.test_cf_repair_environment_and_recheck)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 239, in test_cf_repair_environment_and_recheck
+    self.assertIn('start -- synthetic.service',calls)
+AssertionError: 'start -- synthetic.service' not found in 'systemctl is-active --quiet synthetic.service\nsystemctl show -p LoadState --value synthetic.service\nsystemctl is-active --quiet synthetic.service\nsystemctl show -p Result --value synthetic.service\nsystemctl reset-failed -- synthetic.service\ninstall\nsystemctl is-active --quiet synthetic.service\nsystemctl is-active --quiet synthetic.service\n'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.795s
+
+FAILED (failures=1)
+DETECTED
+M4 mutation checks: PASS (copies only)
+
+
+M4 final stop baseline
+======================================================================
+test_approver_stop (__main__.Tests.test_approver_stop) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.985s
+
+OK
+
+
+M4 final stop mutations (3, including 1 new)
+======================================================================
+MUTATION: stopped state uses health_check
+test_approver_stop (__main__.Tests.test_approver_stop) ... FAIL
+
+======================================================================
+FAIL: test_approver_stop (__main__.Tests.test_approver_stop)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 283, in test_approver_stop
+    self.scan('approver','STOPPED')
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 152, in scan
+    out=self.invoke([self.rows[id]],rc=20 if status=='FAILED' else 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 148, in invoke
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 20 != 0 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T05:59:48Z",\n  "last_success": "",\n  "consecutive_failures": 1,\n  "status": "FAILED",\n  "components": [\n    {\n      "id": "approver",\n      "status": "FAILED",\n      "reason": "nonzero"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.196s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: stop check returns success
+test_approver_stop (__main__.Tests.test_approver_stop) ... FAIL
+
+======================================================================
+FAIL: test_approver_stop (__main__.Tests.test_approver_stop)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 282, in test_approver_stop
+    self.adapter('approver-check', rc=1)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 199, in adapter
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 0 != 1 : ('', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.034s
+
+FAILED (failures=1)
+DETECTED
+MUTATION: stop marker ignored
+test_approver_stop (__main__.Tests.test_approver_stop) ... FAIL
+
+======================================================================
+FAIL: test_approver_stop (__main__.Tests.test_approver_stop)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 283, in test_approver_stop
+    self.scan('approver','STOPPED')
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 152, in scan
+    out=self.invoke([self.rows[id]],rc=20 if status=='FAILED' else 0)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m4.py", line 148, in invoke
+    self.assertEqual(p.returncode,rc,(p.stdout,p.stderr))
+AssertionError: 20 != 0 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T05:59:48Z",\n  "last_success": "",\n  "consecutive_failures": 1,\n  "status": "FAILED",\n  "components": [\n    {\n      "id": "approver",\n      "status": "FAILED",\n      "reason": "nonzero"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.194s
+
+FAILED (failures=1)
+DETECTED
+M4 mutation checks: PASS (copies only)
+
+
+M1
+======================================================================
+health execution contract: PASS
+
+
+M2
+======================================================================
+protocol: WAITING, failure precedence (both orders), STOPPED, metadata, atomic output PASS
+manifest probes: exact listener, approver single call/live PID/freshness/stopped, keepalive freshness/design-stopped, HTTP and unit conjunction PASS
+tunnels: real pgrep matches SSH-shaped argv, rejects wrong port/host and absent process PASS
+M2 regression: PASS
+
+
+M2C
+======================================================================
+test_conflict (__main__.Tests.test_conflict) ... ok
+test_infrastructure (__main__.Tests.test_infrastructure) ... ok
+test_install_patch (__main__.Tests.test_install_patch) ... ok
+test_keepalive (__main__.Tests.test_keepalive) ... ok
+test_reference (__main__.Tests.test_reference) ... ok
+test_reference_errors (__main__.Tests.test_reference_errors) ... ok
+test_tunnels_waiting (__main__.Tests.test_tunnels_waiting) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 6.023s
+
+OK
+
+
+M3
+======================================================================
+test_automatic_rollback (__main__.MigrationTests.test_automatic_rollback) ... ok
+test_dry_run (__main__.MigrationTests.test_dry_run) ... ok
+test_preflight_failure_restores_old (__main__.MigrationTests.test_preflight_failure_restores_old) ... ok
+test_switch_and_rollback (__main__.MigrationTests.test_switch_and_rollback) ... ok
+test_external (__main__.Tests.test_external) ... ok
+test_plan (__main__.Tests.test_plan) ... ok
+test_precedence (__main__.Tests.test_precedence) ... ok
+test_prepare_custom_repair_and_recheck (__main__.Tests.test_prepare_custom_repair_and_recheck) ... ok
+test_reference_stop_and_lock (__main__.Tests.test_reference_stop_and_lock) ... ok
+test_repair_null (__main__.Tests.test_repair_null) ... ok
+test_reset_and_terminal (__main__.Tests.test_reset_and_terminal) ... ok
+test_static_and_template (__main__.Tests.test_static_and_template) ... ok
+test_terminal_guard_independent_of_health (__main__.Tests.test_terminal_guard_independent_of_health) ... ok
+test_validate (__main__.Tests.test_validate) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 16.490s
+
+OK

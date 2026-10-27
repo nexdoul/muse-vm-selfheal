@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "status_protocol": 2,
+  "services": [
+    {
+      "id": "volume",
+      "kind": "infrastructure",
+      "ownership": "internal",
+      "repair": null,
+      "environment": {
+        "VOLUME_PATH": "<VOLUME_PATH>",
+        "VOLUME_SOURCE": "<VOLUME_SOURCE_PATTERN>"
+      },
+      "health_check": "source=$(findmnt -n -o SOURCE \"$VOLUME_PATH\") || exit 1\nprintf '%s\\n' \"$source\" | grep -q -- \"$VOLUME_SOURCE\"",
+      "home": "<SERVICE_HOME>",
+      "workdir": "/",
+      "health_timeout_sec": 5
+    },
+    {
+      "id": "config",
+      "kind": "infrastructure",
+      "ownership": "internal",
+      "repair": null,
+      "environment": {
+        "SITE_CONFIG": "<SITE_CONFIG>",
+        "SERVICES_CONFIG": "<SERVICES_CONFIG>"
+      },
+      "health_check": "jq -e '.version == 1' \"$SITE_CONFIG\" >/dev/null && jq -e '.version == 1' \"$SERVICES_CONFIG\" >/dev/null",
+      "home": "<SERVICE_HOME>",
+      "workdir": "/",
+      "health_timeout_sec": 5
+    },
+    {
+      "id": "cf-probe",
+      "kind": "external-agent",
+      "ownership": "managed",
+      "unit": "<CF_PROBE_UNIT>",
+      "environment": {
+        "UNIT": "<CF_PROBE_UNIT>",
+        "PROBE_BIN": "<CF_PROBE_BIN>",
+        "SECRET_FILE": "<CF_PROBE_SECRET_FILE>",
+        "ADAPTER_DIR": "<ADAPTER_DIR>",
+        "INSTALL_SCRIPT": "<CF_PROBE_INSTALL_SCRIPT>"
+      },
+      "health_check": "systemctl is-active --quiet \"$UNIT\" || exit 1\n[ -x \"$PROBE_BIN\" ] || exit 1\n[ \"$(stat -c %a \"$SECRET_FILE\")\" = 600 ] || exit 1",
+      "repair": [
+        "bash \"$ADAPTER_DIR/cf-probe-repair.sh\""
+      ],
+      "home": "<SERVICE_HOME>",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "timeout_sec": 30,
+      "settle_sec": 3
+    },
+    {
+      "id": "approver",
+      "kind": "muse-auto-approve",
+      "ownership": "managed",
+      "environment": {
+        "APPROVER_ROOT": "<APPROVER_ROOT>",
+        "MAX_STALE_SEC": "900",
+        "ADAPTER_DIR": "<ADAPTER_DIR>",
+        "NODE_BIN": "<NODE_BIN>"
+      },
+      "desired_state_ref": {
+        "file": "<APPROVER_ROOT>/data/muse-daemon.stop",
+        "when_exists": "stopped",
+        "when_missing": "running"
+      },
+      "health_check": "bash \"$ADAPTER_DIR/approver-check.sh\"",
+      "stopped_check": "test -e \"$APPROVER_ROOT/data/muse-daemon.stop\"",
+      "repair": [
+        "bash \"$ADAPTER_DIR/approver-repair.sh\""
+      ],
+      "home": "<SERVICE_HOME>",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "timeout_sec": 30,
+      "settle_sec": 3
+    },
+    {
+      "id": "ssh-alias",
+      "kind": "ssh-alias",
+      "ownership": "managed",
+      "environment": {
+        "SSH_CONFIG": "<SSH_CONFIG>",
+        "ALIASES": "<SSH_ALIASES>",
+        "ADAPTER_DIR": "<ADAPTER_DIR>",
+        "ALIAS_REPAIR_HELPER": "<ALIAS_REPAIR_HELPER>"
+      },
+      "health_check": "bash \"$ADAPTER_DIR/ssh-alias-check.sh\"",
+      "repair": [
+        "bash \"$ADAPTER_DIR/ssh-alias-repair.sh\""
+      ],
+      "home": "<SERVICE_HOME>",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "timeout_sec": 30,
+      "settle_sec": 3
+    },
+    {
+      "id": "gemini-keepalive",
+      "kind": "local-http",
+      "ownership": "managed",
+      "repair": null,
+      "environment": {
+        "UNIT": "<KEEPALIVE_UNIT>",
+        "LOG": "<KEEPALIVE_LOG>",
+        "MAX_LOG_AGE_SEC": "120"
+      },
+      "desired_state_ref": {
+        "file": "<KEEPALIVE_CONFIG>",
+        "pointer": "/accounts",
+        "when_empty": "stopped",
+        "when_nonempty": "running"
+      },
+      "health_check": "systemctl is-active --quiet \"$UNIT\" || exit 1\n[[ \"$MAX_LOG_AGE_SEC\" =~ ^[0-9]+$ ]] || exit 1\n[ -f \"$LOG\" ] || exit 1\nlast_epoch=$(stat -c %Y \"$LOG\") || exit 1\nnow_epoch=$(date +%s) || exit 1\nage=$((now_epoch - last_epoch))\n[ \"$age\" -ge 0 ] && [ \"$age\" -le \"$MAX_LOG_AGE_SEC\" ]",
+      "stopped_check": "load=$(systemctl show --property=LoadState --value \"$UNIT\") || exit 1\n[ \"$load\" = loaded ] || exit 1\nstate=$(systemctl show --property=ActiveState --value \"$UNIT\") || exit 1\n[ \"$state\" = inactive ] || exit 1\nresult=$(systemctl show --property=Result --value \"$UNIT\") || exit 1\n[ \"$result\" = success ] || exit 1\ncode=$(systemctl show --property=ExecMainStatus --value \"$UNIT\") || exit 1\n[ \"$code\" = 0 ]",
+      "home": "<SERVICE_HOME>",
+      "workdir": "/",
+      "health_timeout_sec": 5
+    },
+    {
+      "id": "tunnel-krvps",
+      "kind": "ssh-reverse-tunnel",
+      "ownership": "external",
+      "repair": null,
+      "health_check": "host=$(printf \"%s\" \"$RELAY_HOST\" | sed 's/[][\\\\.^$*+?(){}|]/\\\\&/g') || exit 1\npgrep -f \"(^|/)[s]sh[[:space:]].*[[:space:]]-R[[:space:]]+[^[:space:]]*:${REVERSE_PORT}:[^[:space:]]*[[:space:]].*(@|[[:space:]])${host}([[:space:]]|$)\" >/dev/null",
+      "home": "<SERVICE_HOME>",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "REVERSE_PORT": "<TUNNEL_KRVPS_PORT>",
+        "RELAY_HOST": "<TUNNEL_KRVPS_HOST>"
+      },
+      "prerequisites": [
+        "[[ \"$REVERSE_PORT\" =~ ^[0-9]+$ ]] && (( 10#$REVERSE_PORT >= 1 && 10#$REVERSE_PORT <= 65535 )) && [[ -n \"$RELAY_HOST\" && \"$RELAY_HOST\" != *\"<\"* ]]"
+      ]
+    },
+    {
+      "id": "tunnel-usvps",
+      "kind": "ssh-reverse-tunnel",
+      "ownership": "external",
+      "repair": null,
+      "health_check": "host=$(printf \"%s\" \"$RELAY_HOST\" | sed 's/[][\\\\.^$*+?(){}|]/\\\\&/g') || exit 1\npgrep -f \"(^|/)[s]sh[[:space:]].*[[:space:]]-R[[:space:]]+[^[:space:]]*:${REVERSE_PORT}:[^[:space:]]*[[:space:]].*(@|[[:space:]])${host}([[:space:]]|$)\" >/dev/null",
+      "home": "<SERVICE_HOME>",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "REVERSE_PORT": "<TUNNEL_USVPS_PORT>",
+        "RELAY_HOST": "<TUNNEL_USVPS_HOST>"
+      },
+      "prerequisites": [
+        "[[ \"$REVERSE_PORT\" =~ ^[0-9]+$ ]] && (( 10#$REVERSE_PORT >= 1 && 10#$REVERSE_PORT <= 65535 )) && [[ -n \"$RELAY_HOST\" && \"$RELAY_HOST\" != *\"<\"* ]]"
+      ]
+    },
+    {
+      "id": "sshd",
+      "kind": "external",
+      "ownership": "external",
+      "repair": null,
+      "health_check": "listeners=$(ss -tlnH) || exit 1\nprintf \"%s\\n\" \"$listeners\" | awk -v address=\"$LISTEN_ADDRESS\" '$4 == address { found=1 } END { exit !found }'",
+      "home": "<SERVICE_HOME>",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "LISTEN_ADDRESS": "<SSHD_LISTEN_ADDRESS>"
+      }
+    },
+    {
+      "id": "hermes",
+      "kind": "external",
+      "ownership": "external",
+      "repair": null,
+      "health_check": "pgrep -f -- \"$PROCESS_PATTERN\" >/dev/null",
+      "home": "<SERVICE_HOME>",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "PROCESS_PATTERN": "<HERMES_PROCESS_PATTERN>"
+      }
+    }
+  ]
+}

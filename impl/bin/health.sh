@@ -30,6 +30,29 @@ jq -e '.services | type == "array" and all(.[]; type == "object")' \
 resolved='[]'
 while IFS= read -r service; do
     if jq -e 'has("desired_state_ref")' <<<"$service" >/dev/null; then
+        # Optional marker reference; legacy JSON Pointer resolution stays below.
+        if jq -e '.desired_state_ref | has("when_exists") or has("when_missing")' <<<"$service" >/dev/null 2>&1; then
+            jq -e '(has("desired_state") | not) and
+                (.desired_state_ref | type == "object" and
+                 (keys == ["file", "when_exists", "when_missing"]) and
+                 (.file | type == "string" and length > 0 and (contains("\u0000") | not)) and
+                 all(.when_exists, .when_missing; . == "running" or . == "stopped"))' \
+                <<<"$service" >/dev/null 2>&1 || fail 'invalid marker reference'
+            service=$(python3 -c '
+import json, os, sys
+s = json.load(sys.stdin)
+r = s.pop("desired_state_ref")
+try:
+    os.stat(r["file"])
+    state = r["when_exists"]
+except FileNotFoundError:
+    state = r["when_missing"]
+s["desired_state"] = state
+print(json.dumps(s))
+' <<<"$service" 2>/dev/null) || fail 'cannot resolve marker reference'
+            resolved=$(jq -c --argjson service "$service" '. + [$service]' <<<"$resolved") || fail 'cannot resolve services'
+            continue
+        fi
         jq -e '
             (has("desired_state") | not) and
             (.desired_state_ref | type == "object" and

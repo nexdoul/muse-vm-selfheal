@@ -2,6 +2,7 @@
 """Validate trusted manifests and resolve the health.sh JSON Pointer contract."""
 import json
 import math
+import os
 import re
 import sys
 
@@ -27,7 +28,7 @@ def validate(doc):
     for s in doc['services']:
         require(isinstance(s, dict) and string(s.get('id')) and s['id'] not in ids)
         ids.add(s['id'])
-        require(s.get('ownership', 'internal') in ('internal', 'external'))
+        require(s.get('ownership', 'internal') in ('internal', 'managed', 'external'))
         require(commands(s.get('prerequisites', [])) and commands(s.get('prepare', [])))
         if 'repair' in s:
             require(s['repair'] is None or string(s['repair']) or
@@ -46,6 +47,12 @@ def validate(doc):
             require('desired_state' not in s)
             r = s['desired_state_ref']
             require(isinstance(r, dict) and string(r.get('file')))
+            if 'when_exists' in r or 'when_missing' in r:
+                require(set(r) == {'file', 'when_exists', 'when_missing'})
+                require(r.get('when_exists') in ('running', 'stopped') and
+                        r.get('when_missing') in ('running', 'stopped'))
+                require(string(s.get('health_check')) and string(s.get('stopped_check')))
+                continue
             p = r.get('pointer')
             require(isinstance(p, str) and (p == '' or p.startswith('/')) and
                     not re.search(r'~([^01]|$)', p))
@@ -63,6 +70,14 @@ def resolve(doc):
         if 'desired_state_ref' not in s:
             continue
         r = s.pop('desired_state_ref')
+        if 'when_exists' in r:
+            try:
+                os.stat(r['file'])
+                value = r['when_exists']
+            except FileNotFoundError:
+                value = r['when_missing']
+            s['desired_state'] = value
+            continue
         with open(r['file']) as f:
             value = json.load(f)
         for part in ([] if r['pointer'] == '' else r['pointer'].split('/')[1:]):
