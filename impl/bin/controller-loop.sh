@@ -33,10 +33,13 @@ if [[ -z $services ]]; then
     fi
 fi
 
-# Templates are per site (keepalive/sshd units differ between hosts); fall back
-# to the shared directory when this site has no dedicated one.
+# Templates are per site (keepalive/sshd units differ between hosts).  A shared
+# fallback would install the wrong host's units, so require the site directory.
 unit_dir="$B/units-$site"
-[[ -n $site && -d $unit_dir ]] || unit_dir="$B/units"
+if [[ -z $site || ! -d $unit_dir ]]; then
+    echo "controller: no unit templates for site '$site' ($unit_dir)" >>"$SELFHEAL/logs/controller.log"
+    exit 2
+fi
 
 # A failed bootstrap must not enter reconciliation with partially restored units.
 # The controller unit restarts us; direct callers receive the failure explicitly.

@@ -131,6 +131,9 @@ esac
             ('bootstrap.sh','echo bootstrap >> "$CALLS"; exit "${BOOT_RC:-0}"'),
             ('reconcile.sh','echo reconcile >> "$CALLS"')):
             p=bindir/name; p.write_text('#!/bin/bash\n'+body+'\n'); p.chmod(0o755)
+        # The controller requires a per-site template directory; an empty one is
+        # enough here because bootstrap is stubbed out.
+        (release/'impl/units-synthetic').mkdir(parents=True)
         env=dict(self.env,RELEASES=str(releases),SELFHEAL=str(self.root/'selfheal'),INTERVAL='60',SITE='synthetic')
         p=subprocess.run(['bash',str(ROOT/'bin/controller-loop.sh')],env=dict(env,BOOT_RC='1'),timeout=5)
         self.assertEqual(p.returncode,2)
@@ -154,7 +157,11 @@ esac
         bootstrap.write_text('#!/bin/bash\necho bootstrap >> "$CALLS"\nexit "${BOOT_RC:-0}"\n')
         bootstrap.chmod(0o755)
         self.mock('systemctl', '#!/bin/bash\necho "$*" >> "$CALLS"\n')
-        env=dict(self.env,RELEASES=str(releases),SELFHEAL=str(self.root/'selfheal'))
+        # boot-ensure resolves the site from the site file, never the hostname.
+        selfheal=self.root/'selfheal'; (selfheal/'config').mkdir(parents=True)
+        (selfheal/'config/site.json').write_text(json.dumps({'site':'synthetic'}))
+        (release/'impl/units-synthetic').mkdir(parents=True)
+        env=dict(self.env,RELEASES=str(releases),SELFHEAL=str(selfheal))
         for fail in ('1','0'):
             self.calls.unlink(missing_ok=True)
             p=subprocess.run(['bash',str(ROOT/'bin/boot-ensure.sh')],env=dict(env,BOOT_RC=fail),timeout=5)
