@@ -42,11 +42,12 @@ SHLVL 等自身变量。`user` 默认当前用户，`home` 默认该用户 passw
 每项建议 `health_timeout_sec: 5`。原来的路径、unit、端口和匹配条件改由 `environment`
 传入；参数须取部署上的原值，下面不包含真实主机地址。
 
-1. **volume 挂载来源，22–27 行**。设置 `VOLUME_PATH` 和 `SOURCE_PATTERN`，后者对应
-   原检查的 `/dev/mapper/rv`。保留原来的 grep 子串匹配语义。
+1. **volume 挂载来源，22–27 行**。设置 `VOLUME_PATH` 和 `VOLUME_SOURCE`，后者取部署记录的来源模式。
+   保留原来的 grep 匹配语义，并检查 findmnt 自身是否成功。
 
    ```bash
-   findmnt -n -o SOURCE "$VOLUME_PATH" | grep -q "$SOURCE_PATTERN"
+   source=$(findmnt -n -o SOURCE "$VOLUME_PATH") || exit 1
+   printf "%s\n" "$source" | grep -q -- "$VOLUME_SOURCE"
    ```
 
 2. **两个配置的版本和可解析性，29–35 行**。设置 `SITE_CONFIG`、`SERVICES_CONFIG`。
@@ -113,9 +114,11 @@ SHLVL 等自身变量。`user` 默认当前用户，`home` 默认该用户 passw
 
 ## 新清单与协议
 
-`config/services.muse02.json` 是从真实七服务清单提取的只读健康清单，保留 ID、目标状态、类型和重试参数。
+`config/services.muse02.json` 包含原七服务和前置的 volume/config/tunnels，共十项。
+三个前置项标记 `kind: infrastructure`、`ownership: external`、`repair: null`；reconcile 消费此清单时须跳过这些外部所有者条目的修复。
 修复入口和业务说明不进入此执行器；它不负责部署或 reconcile。检查使用绝对路径，工作目录设为 `/`。
-部署前把 `environment` 内所有尖括号占位符替换为**取部署实际值**的配置；不要把私有值复制到文档。
+部署前替换 `environment` 和 `desired_state_ref.file` 内所有尖括号占位符，值取部署实际配置；不要把私有值复制到文档。
+未替换引用路径时扫描退出 2，不能把此模板的本地运行当作服务健康结果。
 隧道端口是远端监听端口，主机字段只填主机地址，不含用户名前缀。日志阈值默认 120 秒，应按实际日志周期调整。
 
 ```bash
@@ -140,10 +143,40 @@ FAILED 的整体优先级始终高于 WAITING，和服务顺序无关。
 审批自身配置 stopped 或 disabled 时按原规则满足；清单仍为 running 时显示 READY。
 worker_pid 必须指向存活进程，状态只查询一次，过去 120 秒内 list 成功才通过；未来或无效时间失败。
 
-keepalive 无账号时正常 exit 0、unit inactive 是设计终态，但不等于满足 running。
-清单要求 running 时仍 FAILED；确实要求停用时设 `desired_state: stopped`，由 stopped_check 验证
-unit 已加载且 inactive 后显示 STOPPED。不存在的 unit、查询失败、failed 状态均不算已停止。
+keepalive 通过下述数组规则读取 accounts：空数组要求 stopped，非空要求 running。
+停止检查要求 unit 已加载、inactive、Result=success、ExecMainStatus=0；满足后显示 STOPPED。
+不存在的 unit、查询失败、failed 状态和非零退出均不算设计终态。
 运行检查同时要求 unit active 与日志 mtime 新鲜；mtime 只证明最近写入，不能证明刷新业务成功。
+
+### 从业务配置读取目标状态
+
+清单中用引用替换字面量（两字段同时存在，包括 null，退出 2）：
+
+```json
+"desired_state_ref": {"file": "<PRIVATE_CONFIG>", "pointer": "/desired_state"}
+```
+
+引用在控制器身份下、所有探测之前读取；相对路径以调用者当前目录为基准，部署建议使用绝对路径。
+JSON Pointer 支持空指针（根值）、空键、`~0`/`~1` 转义、数组下标；不支持 URI fragment 形式。
+文件必须恰好包含一个 JSON 文档。缺文件、非法 JSON、缺失路径、非法转义或值不为
+running/stopped 均退出 2，保留上次 status.json。
+
+keepalive 使用同一引用上的派生规则（A）：
+
+```json
+"desired_state_ref": {
+  "file": "<KEEPALIVE_CONFIG>", "pointer": "/accounts",
+  "when_empty": "stopped", "when_nonempty": "running"
+}
+```
+
+两条映射必须同时提供且均为合法状态，引用值必须为数组；对象、字符串、null 不当成空账号。
+这样目标只由业务配置导出，无第二个可写状态字段。选定目标后沿用原协议、前置检查和停止检查逻辑。
+
+`tunnels` 的 prerequisite 检查 `relays[]` 中缺失或为 null 的 reverse_port 数量为零；
+不满足即 WAITING/exit 10，全部已配置则执行 `exit 0` 得到 READY。
+这不把普通 health_check 的 exit 10 改成 WAITING。volume/config 失败仍为 FAILED/exit 20，
+且整体 FAILED 优先于 tunnels 的 WAITING。数组前置顺序用于报告，不增加隐式依赖或阻止其他条目被检查。
 
 每轮原子发布 `state-dir/status.json`，包含组件 reason 和以下元数据：
 
@@ -155,5 +188,6 @@ unit 已加载且 inactive 后显示 STOPPED。不存在的 unit、查询失败�
 
 读上轮状态和写新状态都在现有锁内；已有状态损坏时退出 2，保留原文件。
 
-验证新协议和检查语义：`python3 impl/tests/test_m2.py`。
+验证新协议和检查语义：`python3 impl/tests/test_m2.py`、`python3 impl/tests/test_m2c.py`。
+反证验证：`python3 impl/tests/test_m2c.py --mutations`，仅破坏临时副本，原始输出见 `M2C_VALIDATION.txt`。
 原 M1 夹具保持不变；详细改写对照及任务指定命令的原始输出见 `M2A_REPORT.md`。

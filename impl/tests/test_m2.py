@@ -52,12 +52,16 @@ with tempfile.TemporaryDirectory(prefix='m2-contract-') as td:
     def mock(name, code):
         path = bindir/name; path.write_text('#!/bin/bash\n'+code+'\n'); path.chmod(0o755)
     mock('systemctl', '''if [[ $1 == is-active ]]; then exit "${ACTIVE_RC:-0}"; fi
-case "$*" in *LoadState*) echo "${LOAD_STATE:-loaded}";; *) echo "${ACTIVE_STATE:-inactive}";; esac''')
+case "$*" in *ExecMainStatus*) echo 0;; *Result*) echo success;; *LoadState*) echo "${LOAD_STATE:-loaded}";; *) echo "${ACTIVE_STATE:-inactive}";; esac''')
     mock('curl', 'exit "${CURL_RC:-0}"')
     mock('ss', 'printf "%s\\n" "$LISTENERS"; exit "${SS_RC:-0}"')
+    keepalive_config = root/'keepalive.json'
+    keepalive_config.write_text(json.dumps({'accounts': [{}]}))
     def probe(name, expected, **env):
         s=copy.deepcopy(next(s for s in MANIFEST['services'] if s['id']==name))
         s.pop('user', None)
+        if name == 'gemini-keepalive':
+            s['desired_state_ref']['file'] = str(keepalive_config)
         s['environment'].update(PATH=str(bindir)+':/usr/bin:/bin', **env)
         return scan([s], expected)
     probe('local-sshd', 0, LISTENERS='LISTEN 0 128 127.0.0.1:22 0.0.0.0:*')
@@ -86,6 +90,7 @@ case "$*" in *LoadState*) echo "${LOAD_STATE:-loaded}";; *) echo "${ACTIVE_STATE
     os.utime(log,(time.time()-600,time.time()-600)); probe('gemini-keepalive', 20, LOG=str(log))
     probe('gemini-keepalive', 20, LOG=str(log), ACTIVE_RC='3')
     stop=copy.deepcopy(next(s for s in MANIFEST['services'] if s['id']=='gemini-keepalive'))
+    stop.pop('desired_state_ref')
     stop['desired_state']='stopped'; stop['environment']['PATH']=str(bindir)+':/usr/bin:/bin'
     assert scan([stop],0)['components'][0]['status']=='STOPPED'
     stop['environment']['LOAD_STATE']='not-found'; scan([stop],20)

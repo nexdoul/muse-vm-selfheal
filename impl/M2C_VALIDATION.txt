@@ -1,0 +1,147 @@
+$ python3 /home/ribon/workspace/selfheal-merge/fixture_m1.py impl/bin/health.sh
+health execution contract: PASS
+exit=0
+
+$ python3 impl/tests/test_m2.py
+protocol: WAITING, failure precedence (both orders), STOPPED, metadata, atomic output PASS
+manifest probes: exact listener, approver single call/live PID/freshness/stopped, keepalive freshness/design-stopped, HTTP and unit conjunction PASS
+tunnels: real pgrep matches SSH-shaped argv, rejects wrong port/host and absent process PASS
+M2 regression: PASS
+exit=0
+
+$ bash -n impl/bin/health.sh
+exit=0
+
+$ python3 impl/tests/test_m2c.py
+test_conflict (__main__.Tests.test_conflict) ... ok
+test_infrastructure (__main__.Tests.test_infrastructure) ... ok
+test_install_patch (__main__.Tests.test_install_patch) ... ok
+test_keepalive (__main__.Tests.test_keepalive) ... ok
+test_reference (__main__.Tests.test_reference) ... ok
+test_reference_errors (__main__.Tests.test_reference_errors) ... ok
+test_tunnels_waiting (__main__.Tests.test_tunnels_waiting) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 5.901s
+
+OK
+exit=0
+
+$ mkdir -p /tmp/m2c/state /tmp/m2c/run
+exit=0
+
+$ impl/bin/health.sh --services impl/config/services.muse02.json --state-dir /tmp/m2c/state --run-dir /tmp/m2c/run --json
+health: cannot resolve desired_state_ref
+exit=2
+
+$ python3 impl/tests/test_m2c.py --mutations
+MUTATION: ignore dual-source conflict
+test_conflict (__main__.Tests.test_conflict) ... FAIL
+
+======================================================================
+FAIL: test_conflict (__main__.Tests.test_conflict)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m2c.py", line 99, in test_conflict
+    self.scan([self.service(desired_state=desired, desired_state_ref=self.ref())], 2)
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m2c.py", line 42, in scan
+    self.assertEqual(p.returncode, rc, (p.stdout, p.stderr))
+AssertionError: 0 != 2 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T04:55:20Z",\n  "last_success": "2026-10-27T04:55:20Z",\n  "consecutive_failures": 0,\n  "status": "READY",\n  "components": [\n    {\n      "id": "ref-test",\n      "status": "STOPPED",\n      "reason": "stopped"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.130s
+
+FAILED (failures=1)
+DETECTED (exit=1)
+MUTATION: invert empty accounts target
+test_keepalive (__main__.Tests.test_keepalive) ... FAIL
+
+======================================================================
+FAIL: test_keepalive (__main__.Tests.test_keepalive)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m2c.py", line 121, in test_keepalive
+    self.scan([s], 0, [('gemini-keepalive', 'STOPPED')])
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m2c.py", line 42, in scan
+    self.assertEqual(p.returncode, rc, (p.stdout, p.stderr))
+AssertionError: 20 != 0 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T04:55:21Z",\n  "last_success": "",\n  "consecutive_failures": 1,\n  "status": "FAILED",\n  "components": [\n    {\n      "id": "gemini-keepalive",\n      "status": "FAILED",\n      "reason": "nonzero"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.135s
+
+FAILED (failures=1)
+DETECTED (exit=1)
+MUTATION: volume always succeeds
+test_infrastructure (__main__.Tests.test_infrastructure) ... FAIL
+
+======================================================================
+FAIL: test_infrastructure (__main__.Tests.test_infrastructure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m2c.py", line 156, in test_infrastructure
+    self.scan(bad, 20, [('volume', 'FAILED')]+ready[1:])
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m2c.py", line 42, in scan
+    self.assertEqual(p.returncode, rc, (p.stdout, p.stderr))
+AssertionError: 0 != 20 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T04:55:21Z",\n  "last_success": "2026-10-27T04:55:21Z",\n  "consecutive_failures": 0,\n  "status": "READY",\n  "components": [\n    {\n      "id": "volume",\n      "status": "READY",\n      "reason": "ready"\n    },\n    {\n      "id": "config",\n      "status": "READY",\n      "reason": "ready"\n    },\n    {\n      "id": "tunnels",\n      "status": "READY",\n      "reason": "ready"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.546s
+
+FAILED (failures=1)
+DETECTED (exit=1)
+MUTATION: config always succeeds
+test_infrastructure (__main__.Tests.test_infrastructure) ... FAIL
+
+======================================================================
+FAIL: test_infrastructure (__main__.Tests.test_infrastructure)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m2c.py", line 161, in test_infrastructure
+    out = self.scan(rows, 20, [('volume', 'READY'), ('config', 'FAILED'),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m2c.py", line 42, in scan
+    self.assertEqual(p.returncode, rc, (p.stdout, p.stderr))
+AssertionError: 10 != 20 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T04:55:22Z",\n  "last_success": "2026-10-27T04:55:22Z",\n  "consecutive_failures": 0,\n  "status": "WAITING",\n  "components": [\n    {\n      "id": "volume",\n      "status": "READY",\n      "reason": "ready"\n    },\n    {\n      "id": "config",\n      "status": "READY",\n      "reason": "ready"\n    },\n    {\n      "id": "tunnels",\n      "status": "WAITING",\n      "reason": "waiting"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 1.081s
+
+FAILED (failures=1)
+DETECTED (exit=1)
+MUTATION: tunnels uses ordinary health_check
+test_tunnels_waiting (__main__.Tests.test_tunnels_waiting) ... FAIL
+
+======================================================================
+FAIL: test_tunnels_waiting (__main__.Tests.test_tunnels_waiting)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m2c.py", line 170, in test_tunnels_waiting
+    out = self.scan(rows, 10, [('volume', 'READY'), ('config', 'READY'), ('tunnels', 'WAITING')])
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ribon/workspace/selfheal-merge/work/impl/tests/test_m2c.py", line 42, in scan
+    self.assertEqual(p.returncode, rc, (p.stdout, p.stderr))
+AssertionError: 20 != 10 : ('{\n  "generation": "unknown",\n  "boot_id": "abd1db52-e9a0-46d1-96fb-a085767cef68",\n  "config_version": "1",\n  "checked_at": "2026-10-27T04:55:23Z",\n  "last_success": "",\n  "consecutive_failures": 1,\n  "status": "FAILED",\n  "components": [\n    {\n      "id": "volume",\n      "status": "READY",\n      "reason": "ready"\n    },\n    {\n      "id": "config",\n      "status": "READY",\n      "reason": "ready"\n    },\n    {\n      "id": "tunnels",\n      "status": "FAILED",\n      "reason": "nonzero"\n    }\n  ]\n}\n', '')
+
+----------------------------------------------------------------------
+Ran 1 test in 0.242s
+
+FAILED (failures=1)
+DETECTED (exit=1)
+Mutation checks: PASS; repository implementation unchanged
+exit=0
+
+$ python3 impl/tests/test_m2c.py
+test_conflict (__main__.Tests.test_conflict) ... ok
+test_infrastructure (__main__.Tests.test_infrastructure) ... ok
+test_install_patch (__main__.Tests.test_install_patch) ... ok
+test_keepalive (__main__.Tests.test_keepalive) ... ok
+test_reference (__main__.Tests.test_reference) ... ok
+test_reference_errors (__main__.Tests.test_reference_errors) ... ok
+test_tunnels_waiting (__main__.Tests.test_tunnels_waiting) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 5.913s
+
+OK
+exit=0
+

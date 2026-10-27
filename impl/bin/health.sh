@@ -24,6 +24,45 @@ for tool in jq setsid env flock mktemp mkfifo id getent; do
     command -v "$tool" >/dev/null || fail 'required system tool is unavailable'
 done
 manifest=$(jq -c . "$services" 2>/dev/null) || fail 'cannot read services manifest'
+# Resolve every external target before any probe or status publication.
+jq -e '.services | type == "array" and all(.[]; type == "object")' \
+    <<<"$manifest" >/dev/null 2>&1 || fail 'invalid services manifest'
+resolved='[]'
+while IFS= read -r service; do
+    if jq -e 'has("desired_state_ref")' <<<"$service" >/dev/null; then
+        jq -e '
+            (has("desired_state") | not) and
+            (.desired_state_ref | type == "object" and
+                (.file | type == "string" and length > 0 and (contains("\u0000") | not)) and
+                (.pointer | type == "string" and (. == "" or startswith("/"))) and
+                (if has("when_empty") or has("when_nonempty") then
+                    all(.when_empty, .when_nonempty; . == "running" or . == "stopped")
+                 else true end))' <<<"$service" >/dev/null 2>&1 || fail 'invalid desired_state_ref'
+        ref=$(jq -c '.desired_state_ref' <<<"$service")
+        ref_file=$(jq -r '.file' <<<"$ref")
+        desired=$(jq -ser --argjson ref "$ref" '
+            if length != 1 then error("expected one JSON document") else .[0] end |
+            reduce ($ref.pointer | if . == "" then [] else split("/")[1:] end | .[]) as $part
+                (.;
+                 if ($part | test("~([^01]|$)")) then error("invalid escape") else . end |
+                 ($part | gsub("~1"; "/") | gsub("~0"; "~")) as $key |
+                 if type == "object" then
+                     if has($key) then .[$key] else error("missing key") end
+                 elif type == "array" and ($key | test("^(0|[1-9][0-9]*)$")) then
+                     ($key | tonumber) as $index |
+                     if $index < length then .[$index] else error("missing index") end
+                 else error("invalid traversal") end) |
+            if $ref | has("when_empty") then
+                if type != "array" then error("expected array")
+                elif length == 0 then $ref.when_empty else $ref.when_nonempty end
+            else . end |
+            if . == "running" or . == "stopped" then . else error("invalid target") end
+            ' -- "$ref_file" 2>/dev/null) || fail 'cannot resolve desired_state_ref'
+        service=$(jq -c --arg desired "$desired" '.desired_state = $desired | del(.desired_state_ref)' <<<"$service")
+    fi
+    resolved=$(jq -c --argjson service "$service" '. + [$service]' <<<"$resolved") || fail 'cannot resolve services'
+done < <(jq -c '.services[]' <<<"$manifest")
+manifest=$(jq -c --argjson resolved "$resolved" '.services = $resolved' <<<"$manifest") || fail 'cannot resolve services'
 jq -e '
     .version == 1 and ((.status_protocol // 1) | . == 1 or . == 2) and
     (.services | type == "array") and

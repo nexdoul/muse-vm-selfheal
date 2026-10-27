@@ -3,6 +3,55 @@
   "status_protocol": 2,
   "services": [
     {
+      "id": "volume",
+      "kind": "infrastructure",
+      "ownership": "external",
+      "repair": null,
+      "desired_state": "running",
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "VOLUME_PATH": "<VOLUME_PATH>",
+        "VOLUME_SOURCE": "<VOLUME_SOURCE_PATTERN>"
+      },
+      "health_check": "source=$(findmnt -n -o SOURCE \"$VOLUME_PATH\") || exit 1\nprintf \"%s\\n\" \"$source\" | grep -q -- \"$VOLUME_SOURCE\"",
+      "prerequisites": []
+    },
+    {
+      "id": "config",
+      "kind": "infrastructure",
+      "ownership": "external",
+      "repair": null,
+      "desired_state": "running",
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "SITE_CONFIG": "<SITE_CONFIG>",
+        "SERVICES_CONFIG": "<SERVICES_CONFIG>"
+      },
+      "health_check": "jq -e '.version == 1' \"$SITE_CONFIG\" >/dev/null && jq -e '.version == 1' \"$SERVICES_CONFIG\" >/dev/null",
+      "prerequisites": []
+    },
+    {
+      "id": "tunnels",
+      "kind": "infrastructure",
+      "ownership": "external",
+      "repair": null,
+      "desired_state": "running",
+      "home": "/",
+      "workdir": "/",
+      "health_timeout_sec": 5,
+      "environment": {
+        "SITE_CONFIG": "<SITE_CONFIG>"
+      },
+      "health_check": "exit 0",
+      "prerequisites": [
+        "jq -e '[.relays[] | select(.reverse_port == null)] | length == 0' \"$SITE_CONFIG\" >/dev/null"
+      ]
+    },
+    {
       "desired_state": "running",
       "id": "local-sshd",
       "kind": "sshd-localhost",
@@ -117,7 +166,6 @@
     {
       "id": "gemini-keepalive",
       "kind": "local-http",
-      "desired_state": "running",
       "relay": null,
       "retry_backoff_sec": 30,
       "retry_budget": 5,
@@ -131,7 +179,13 @@
         "MAX_LOG_AGE_SEC": "120"
       },
       "health_check": "systemctl is-active --quiet \"$UNIT\" || exit 1\n[[ \"$MAX_LOG_AGE_SEC\" =~ ^[0-9]+$ ]] || exit 1\n[ -f \"$LOG\" ] || exit 1\nlast_epoch=$(stat -c %Y \"$LOG\") || exit 1\nnow_epoch=$(date +%s) || exit 1\nage=$((now_epoch - last_epoch))\n[ \"$age\" -ge 0 ] && [ \"$age\" -le \"$MAX_LOG_AGE_SEC\" ]",
-      "stopped_check": "load=$(systemctl show --property=LoadState --value \"$UNIT\") || exit 1\n[ \"$load\" = loaded ] || exit 1\nstate=$(systemctl show --property=ActiveState --value \"$UNIT\") || exit 1\n[ \"$state\" = inactive ]"
+      "stopped_check": "load=$(systemctl show --property=LoadState --value \"$UNIT\") || exit 1\n[ \"$load\" = loaded ] || exit 1\nstate=$(systemctl show --property=ActiveState --value \"$UNIT\") || exit 1\n[ \"$state\" = inactive ] || exit 1\nresult=$(systemctl show --property=Result --value \"$UNIT\") || exit 1\n[ \"$result\" = success ] || exit 1\ncode=$(systemctl show --property=ExecMainStatus --value \"$UNIT\") || exit 1\n[ \"$code\" = 0 ]",
+      "desired_state_ref": {
+        "file": "<KEEPALIVE_CONFIG>",
+        "pointer": "/accounts",
+        "when_empty": "stopped",
+        "when_nonempty": "running"
+      }
     }
   ]
 }
