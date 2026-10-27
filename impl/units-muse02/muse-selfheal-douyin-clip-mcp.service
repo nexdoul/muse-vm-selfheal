@@ -1,0 +1,28 @@
+[Unit]
+Description=Muse Douyin clip MCP (parse+ASR+Feishu upload)
+After=default.target network-online.target muse-selfheal-douyin-parse.service
+Wants=default.target muse-selfheal-douyin-parse.service
+StartLimitIntervalSec=300
+StartLimitBurst=8
+
+[Service]
+Type=simple
+WorkingDirectory=/home/hatch/douyin-clip-mcp
+Environment=PYTHONUNBUFFERED=1
+Environment=HOME=/home/hatch
+Environment=PATH=/home/hatch/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=LARK_CONFIG_DIR=/home/hatch/.lark-cli
+Environment=XDG_DATA_HOME=/home/hatch/.local/share
+Environment=LARK_CLI=/home/hatch/.local/bin/lark-cli
+Environment=HF_HOME=/home/hatch/douyin-clip-mcp/.cache/huggingface
+Environment=WHISPER_MODEL=tiny
+Environment=WHISPER_COMPUTE=int8
+ExecStart=/home/hatch/douyin-clip-mcp/venv/bin/uvicorn app:app --host 127.0.0.1 --port 8766 --workers 1 --log-level info
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillMode=control-group
+MemoryMax=1536M
+
+[Install]
+WantedBy=default.target

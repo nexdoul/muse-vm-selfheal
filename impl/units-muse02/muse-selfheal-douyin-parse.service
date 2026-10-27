@@ -1,0 +1,22 @@
+[Unit]
+Description=Muse Douyin no-watermark parse API (localhost FastAPI)
+After=default.target network-online.target
+Wants=default.target
+StartLimitIntervalSec=300
+StartLimitBurst=8
+
+[Service]
+Type=simple
+WorkingDirectory=/home/hatch/douyin-parse
+Environment=PYTHONUNBUFFERED=1
+Environment=DOUYIN_COOKIE_FILE=/home/hatch/douyin-parse/cookies.txt
+ExecStart=/home/hatch/douyin-parse/venv/bin/uvicorn app:app --host 127.0.0.1 --port 8765 --workers 1 --log-level info
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillMode=control-group
+# Keep lean; Hatch expands memory under load
+MemoryMax=512M
+
+[Install]
+WantedBy=default.target

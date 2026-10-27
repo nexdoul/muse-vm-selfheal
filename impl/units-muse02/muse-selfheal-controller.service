@@ -1,0 +1,20 @@
+[Unit]
+Description=Muse VM selfheal controller (manifest-driven reconcile loop)
+After=default.target network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/home/hatch/selfheal-releases/current
+Environment=HOME=/home/hatch
+Environment=CONTROLLER_INTERVAL_SEC=30
+Environment=INTERVAL=30
+Environment=RELEASES=/home/hatch/selfheal-releases
+Environment=SELFHEAL=/home/hatch/selfheal
+ExecStart=/bin/bash /home/hatch/selfheal-releases/current/impl/bin/controller-loop.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

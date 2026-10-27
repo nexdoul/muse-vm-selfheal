@@ -1,0 +1,16 @@
+[Unit]
+Description=Muse VM self-heal: MuseAutoApprove worker (foreground, agent-approved strategy only)
+After=muse-selfheal-supervisor.service
+StartLimitIntervalSec=300
+StartLimitBurst=3
+
+[Service]
+Type=simple
+ExecStart=/home/hatch/selfheal/bin/approverctl run
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=120
+TimeoutStopSec=60
+
+[Install]
+WantedBy=default.target

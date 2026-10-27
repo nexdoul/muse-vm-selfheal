@@ -1,0 +1,22 @@
+[Unit]
+Description=Cloudflare probe daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/cf-probe run -debug=0
+Restart=on-failure
+RestartSec=5
+User=root
+Group=root
+Nice=19
+CPUSchedulingPolicy=other
+IOSchedulingClass=idle
+IOSchedulingPriority=7
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cf-probe
+
+[Install]
+WantedBy=multi-user.target

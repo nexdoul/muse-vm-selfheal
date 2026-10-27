@@ -1,0 +1,38 @@
+[Unit]
+Description=Muse Gemini multi-account browser keepalive (1 camoufox + N contexts)
+After=default.target network-online.target muse-xvfb-keepalive.service
+Wants=default.target network-online.target muse-xvfb-keepalive.service
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=/home/hatch/muse-keepalive
+Environment=HOME=/home/hatch
+Environment=NODE_BIN=/usr/bin/node
+# /tmp 是 512MB tmpfs，camoufox/playwright 临时文件必须落到持久卷，否则 ENOSPC
+Environment=TMPDIR=/home/hatch/muse-keepalive/tmp
+Environment=XDG_CACHE_HOME=/home/hatch/muse-keepalive/cache
+# 必须 headed + Xvfb：实测 headless 下 webgl 恒为 false（即使加了 force-enabled），
+# 而 Google reCAPTCHA Enterprise 在 webgl:false 时直接判失败
+# （表现为 "Something went wrong. Please try again."，不是图片题，极易误判）。
+# headed + Xvfb 实测 webgl=true, renderer=llvmpipe。
+Environment=DISPLAY=:99
+Environment=MOZ_ENABLE_WAYLAND=0
+Environment=GDK_BACKEND=x11
+Environment=XDG_SESSION_TYPE=x11
+Environment=WAYLAND_DISPLAY=
+Environment=LIBGL_ALWAYS_SOFTWARE=1
+Environment=GALLIUM_DRIVER=llvmpipe
+ExecStart=/bin/bash /home/hatch/muse-keepalive/keepalive.sh
+# 关键：退出码 10/20 是"等待人工登录/环境缺失"，属于正常终态，不是崩溃。
+# 用 Restart=on-failure + RestartPreventExitStatus 避免无限重启烧 CPU。
+# 只有 30（未预期崩溃）才自动重启；恢复依赖 selfheal 的 reconcile 或人工 systemctl start。
+Restart=on-failure
+RestartPreventExitStatus=10 20
+RestartSec=60
+TimeoutStopSec=30
+KillMode=mixed
+
+[Install]
+WantedBy=default.target

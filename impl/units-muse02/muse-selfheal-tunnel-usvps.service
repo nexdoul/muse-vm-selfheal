@@ -1,0 +1,18 @@
+[Unit]
+Description=SSH reverse tunnel to usvps relay
+After=network.target
+Wants=network.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=/home/hatch/selfheal/bin/tunnel.sh usvps
+WorkingDirectory=/home/hatch/selfheal
+Restart=always
+RestartSec=10
+TimeoutStopSec=15
+KillMode=control-group
+
+[Install]
+WantedBy=default.target

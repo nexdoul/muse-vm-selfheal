@@ -1,0 +1,18 @@
+[Unit]
+Description=Manifest-driven selfheal controller
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+Environment=RELEASES=/home/hatch/selfheal-releases
+Environment=SELFHEAL=/home/hatch/selfheal
+Environment=SERVICES=/home/hatch/selfheal-releases/current/impl/config/services.json
+ExecStart=/bin/bash /home/hatch/selfheal-releases/current/impl/bin/controller-loop.sh
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
